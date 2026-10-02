@@ -5,219 +5,53 @@ import { Alert, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View,
 
 import { Colors, FontSize, Fonts, IconSize, Radius, Spacing } from "@/constants/theme";
 import { useDebts } from "@/context/debt-context";
-import { scheduleDebtReminder } from "@/lib/notifications";
-import { remainingAmount } from "@/types/debt";
+import { remainingAmount, paymentProgress } from "@/types/debt";
 
-const formatMoney = (value: number) => "₦" + value.toLocaleString("en-NG");
-const formatDate = (value: string) =>
-  new Date(value).toLocaleDateString("en-NG", { day: "numeric", month: "short", year: "numeric" });
+const money=(n:number)=>"₦"+n.toLocaleString("en-NG");
+const date=(v:string)=>new Date(v).toLocaleDateString("en-NG",{day:"numeric",month:"short",year:"numeric"});
 
-export default function DebtDetailScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
-  const scheme = useColorScheme();
-  const colors = Colors[scheme === "dark" ? "dark" : "light"];
-  const { getDebt, addPayment, deleteDebt } = useDebts();
-  const [paymentText, setPaymentText] = useState("");
-  const [showPayment, setShowPayment] = useState(false);
+export default function DebtDetailScreen(){
+  const {id}=useLocalSearchParams<{id:string}>();
+  const colors=Colors[useColorScheme()==="dark"?"dark":"light"];
+  const {getDebt,addPayment,deleteDebt}=useDebts();
+  const [paymentText,setPaymentText]=useState(""); const [showPayment,setShowPayment]=useState(false);
+  const debt=getDebt(id);
+  if(!debt)return <View style={[styles.center,{backgroundColor:colors.background}]}><Text style={[styles.notFound,{color:colors.text}]}>Debt not found.</Text><Pressable onPress={()=>router.replace("/")} style={[styles.smallButton,{backgroundColor:colors.primary}]}><Text style={styles.smallButtonText}>Back home</Text></Pressable></View>;
 
-  const debt = getDebt(id);
+  const remaining=remainingAmount(debt), paid=debt.amount-remaining, progress=paymentProgress(debt);
+  const recordPayment=async()=>{const amount=Number(paymentText.replace(/,/g,""));if(!amount||amount<=0||amount>remaining)return;await addPayment(debt.id,amount);setPaymentText("");setShowPayment(false)};
+  const remove=()=>Alert.alert("Delete debt?","This removes the debt and its payment history from this device.",[{text:"Cancel",style:"cancel"},{text:"Delete",style:"destructive",onPress:async()=>{await deleteDebt(debt.id);router.replace("/")}}]);
 
-  if (!debt) {
-    return (
-      <View style={[styles.center, { backgroundColor: colors.background }]}>
-        <Text style={[styles.notFound, { color: colors.text }]}>Debt not found.</Text>
-        <Pressable onPress={() => router.replace("/")} style={[styles.smallButton, { backgroundColor: colors.primary }]}>
-          <Text style={styles.smallButtonText}>Back home</Text>
-        </Pressable>
+  return <>
+    <ScrollView style={{backgroundColor:colors.background}} contentContainerStyle={styles.content}>
+      <View style={styles.header}><Pressable onPress={()=>router.back()} style={styles.back}><Ionicons name="arrow-back" size={22} color={colors.text}/></Pressable><Text style={[styles.headerTitle,{color:colors.text}]}>Debt detail</Text><Pressable onPress={remove} style={styles.back}><Ionicons name="trash-outline" size={21} color={colors.danger}/></Pressable></View>
+
+      <View style={[styles.hero,{backgroundColor:colors.surface}]}>
+        <View style={[styles.personAvatar,{backgroundColor:debt.type==="they_owe_me"?colors.successSoft:colors.terracottaSoft}]}><Text style={[styles.personInitial,{color:debt.type==="they_owe_me"?colors.success:colors.terracotta}]}>{debt.person.charAt(0).toUpperCase()}</Text></View>
+        <Text style={[styles.person,{color:colors.text}]}>{debt.person}</Text>
+        <Text style={[styles.remaining,{color:colors.text}]}>{money(remaining)}</Text>
+        <Text style={[styles.remainingLabel,{color:colors.textSecondary}]}>remaining</Text>
+        <View style={[styles.progressTrack,{backgroundColor:colors.surfaceSecondary}]}><View style={[styles.progressFill,{backgroundColor:colors.primary,width:(progress*100)+"%"}]}/></View>
+        <Text style={[styles.progressText,{color:colors.textSecondary}]}>{Math.round(progress*100)}% recovered · {money(paid)} paid of {money(debt.amount)}</Text>
+        <View style={[styles.meta,{borderTopColor:colors.border}]}><Text style={[styles.metaText,{color:colors.textSecondary}]}>{debt.type==="they_owe_me"?"They owe you":"You owe them"}</Text><Text style={[styles.metaText,{color:colors.textSecondary}]}>Due {date(debt.dueDate)}</Text></View>
       </View>
-    );
-  }
 
-  const remaining = remainingAmount(debt);
-  const paid = debt.amount - remaining;
+      {debt.note?<View style={[styles.noteCard,{backgroundColor:colors.surface,borderColor:colors.border}]}><Text style={[styles.noteLabel,{color:colors.textSecondary}]}>Note</Text><Text style={[styles.noteText,{color:colors.text}]}>{debt.note}</Text></View>:null}
 
-  const recordPayment = async () => {
-    const amount = Number(paymentText.replace(/,/g, ""));
-    if (!amount || amount <= 0 || amount > remaining) return;
-    await addPayment(debt.id, amount);
-    setPaymentText("");
-    setShowPayment(false);
-  };
+      <View style={styles.sectionHeader}><Text style={[styles.sectionTitle,{color:colors.text}]}>Ledger</Text><Text style={[styles.paidText,{color:colors.textSecondary}]}>{money(paid)} paid</Text></View>
+      <View style={[styles.ledger,{backgroundColor:colors.surface}]}>
+        <View style={styles.ledgerRow}><View><Text style={[styles.ledgerTitle,{color:colors.text}]}>Original debt</Text><Text style={[styles.ledgerDate,{color:colors.textSecondary}]}>{date(debt.createdAt)}</Text></View><Text style={[styles.ledgerAmount,{color:colors.text}]}>{money(debt.amount)}</Text></View>
+        {debt.payments.map(p=><View key={p.id} style={[styles.ledgerRow,{borderTopColor:colors.border,borderTopWidth:1}]}><View><Text style={[styles.ledgerTitle,{color:colors.text}]}>Payment</Text><Text style={[styles.ledgerDate,{color:colors.textSecondary}]}>{date(p.date)}</Text></View><Text style={[styles.ledgerAmount,{color:colors.success}]}>-{money(p.amount)}</Text></View>)}
+        <View style={[styles.totalRow,{borderTopColor:colors.border}]}><Text style={[styles.totalLabel,{color:colors.text}]}>Remaining</Text><Text style={[styles.totalAmount,{color:colors.text}]}>{money(remaining)}</Text></View>
+      </View>
 
-  const remind = async () => {
-    const reminderId = await scheduleDebtReminder(debt.person, debt.dueDate);
-    Alert.alert(
-      reminderId ? "Reminder set" : "Reminder not set",
-      reminderId
-        ? "OwedBy will remind you about " + debt.person + "."
-        : "Allow notifications in your phone settings to use reminders.",
-    );
-  };
+      <View style={styles.actions}><Pressable onPress={()=>setShowPayment(true)} disabled={remaining<=0} style={[styles.primaryAction,{backgroundColor:remaining>0?colors.primary:colors.surfaceSecondary}]}><Ionicons name="cash-outline" size={21} color={remaining>0?"#fff":colors.textTertiary}/><Text style={[styles.actionText,{color:remaining>0?"#fff":colors.textTertiary}]}>{remaining>0?"Mark payment":"Paid in full"}</Text></Pressable><Pressable onPress={()=>router.push({pathname:"/reminder/[id]",params:{id:debt.id}})} style={[styles.secondaryAction,{borderColor:colors.border,backgroundColor:colors.surface}]}><Ionicons name="chatbubble-ellipses-outline" size={21} color={colors.primary}/><Text style={[styles.actionText,{color:colors.text}]}>Remind {debt.person}</Text></Pressable></View>
+    </ScrollView>
 
-  const remove = () => {
-    Alert.alert("Delete debt?", "This removes the debt and its payment history from this device.", [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Delete",
-        style: "destructive",
-        onPress: async () => {
-          await deleteDebt(debt.id);
-          router.replace("/");
-        },
-      },
-    ]);
-  };
-
-  return (
-    <>
-      <ScrollView style={{ backgroundColor: colors.background }} contentContainerStyle={styles.content}>
-        <View style={styles.header}>
-          <Pressable onPress={() => router.back()} style={styles.back}>
-            <Ionicons name="arrow-back" size={IconSize.medium} color={colors.text} />
-          </Pressable>
-          <Text style={[styles.headerTitle, { color: colors.text }]}>Debt detail</Text>
-          <Pressable onPress={remove} style={styles.back}>
-            <Ionicons name="trash-outline" size={IconSize.medium} color={colors.danger} />
-          </Pressable>
-        </View>
-
-        <View style={[styles.hero, { backgroundColor: colors.surface }]}>
-          <Text style={[styles.person, { color: colors.text }]}>{debt.person}</Text>
-          <Text style={[styles.remaining, { color: colors.text }]}>{formatMoney(remaining)}</Text>
-          <Text style={[styles.remainingLabel, { color: colors.textSecondary }]}>remaining</Text>
-          <View style={[styles.meta, { borderTopColor: colors.border }]}>
-            <Text style={[styles.metaText, { color: colors.textSecondary }]}>
-              {debt.type === "they_owe_me" ? "They owe you" : "You owe them"}
-            </Text>
-            <Text style={[styles.metaText, { color: colors.textSecondary }]}>Due {formatDate(debt.dueDate)}</Text>
-          </View>
-        </View>
-
-        {debt.note ? (
-          <View style={[styles.noteCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-            <Text style={[styles.noteLabel, { color: colors.textSecondary }]}>Note</Text>
-            <Text style={[styles.noteText, { color: colors.text }]}>{debt.note}</Text>
-          </View>
-        ) : null}
-
-        <View style={styles.sectionHeader}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>Ledger</Text>
-          <Text style={[styles.paidText, { color: colors.textSecondary }]}>{formatMoney(paid)} paid</Text>
-        </View>
-
-        <View style={[styles.ledger, { backgroundColor: colors.surface }]}>
-          <View style={styles.ledgerRow}>
-            <View>
-              <Text style={[styles.ledgerTitle, { color: colors.text }]}>Original debt</Text>
-              <Text style={[styles.ledgerDate, { color: colors.textSecondary }]}>{formatDate(debt.createdAt)}</Text>
-            </View>
-            <Text style={[styles.ledgerAmount, { color: colors.text }]}>{formatMoney(debt.amount)}</Text>
-          </View>
-
-          {debt.payments.map((payment) => (
-            <View key={payment.id} style={[styles.ledgerRow, { borderTopColor: colors.border, borderTopWidth: 1 }]}>
-              <View>
-                <Text style={[styles.ledgerTitle, { color: colors.text }]}>Payment</Text>
-                <Text style={[styles.ledgerDate, { color: colors.textSecondary }]}>{formatDate(payment.date)}</Text>
-              </View>
-              <Text style={[styles.ledgerAmount, { color: colors.success }]}>-{formatMoney(payment.amount)}</Text>
-            </View>
-          ))}
-
-          <View style={[styles.totalRow, { borderTopColor: colors.border }]}>
-            <Text style={[styles.totalLabel, { color: colors.text }]}>Remaining</Text>
-            <Text style={[styles.totalAmount, { color: colors.text }]}>{formatMoney(remaining)}</Text>
-          </View>
-        </View>
-
-        <Pressable onPress={() => setShowPayment(true)} disabled={remaining <= 0} style={[styles.primaryAction, { backgroundColor: remaining > 0 ? colors.primary : colors.surfaceSecondary }]}>
-          <Ionicons name="cash-outline" size={IconSize.medium} color={remaining > 0 ? "#FFFFFF" : colors.textTertiary} />
-          <Text style={[styles.primaryActionText, { color: remaining > 0 ? "#FFFFFF" : colors.textTertiary }]}>
-            {remaining > 0 ? "Mark payment" : "Paid in full"}
-          </Text>
-        </Pressable>
-
-        <Pressable onPress={remind} style={[styles.secondaryAction, { borderColor: colors.border, backgroundColor: colors.surface }]}>
-          <Ionicons name="notifications-outline" size={IconSize.medium} color={colors.primary} />
-          <Text style={[styles.secondaryActionText, { color: colors.text }]}>Remind Oba</Text>
-        </Pressable>
-      </ScrollView>
-
-      <Modal visible={showPayment} transparent animationType="slide" onRequestClose={() => setShowPayment(false)}>
-        <View style={styles.modalBackdrop}>
-          <View style={[styles.modal, { backgroundColor: colors.surface }]}>
-            <Text style={[styles.modalTitle, { color: colors.text }]}>Record payment</Text>
-            <Text style={[styles.modalHint, { color: colors.textSecondary }]}>Remaining: {formatMoney(remaining)}</Text>
-            <View style={[styles.amountInput, { borderColor: colors.border }]}>
-              <Text style={[styles.naira, { color: colors.textSecondary }]}>₦</Text>
-              <TextInput
-                autoFocus
-                value={paymentText}
-                onChangeText={(value) => setPaymentText(value.replace(/[^0-9,]/g, ""))}
-                keyboardType="numeric"
-                placeholder="0"
-                placeholderTextColor={colors.textTertiary}
-                style={[styles.paymentField, { color: colors.text }]}
-              />
-            </View>
-            <View style={styles.modalActions}>
-              <Pressable onPress={() => setShowPayment(false)} style={[styles.cancel, { backgroundColor: colors.surfaceSecondary }]}>
-                <Text style={[styles.cancelText, { color: colors.text }]}>Cancel</Text>
-              </Pressable>
-              <Pressable disabled={!Number(paymentText.replace(/,/g, ""))} onPress={recordPayment} style={[styles.confirm, { backgroundColor: colors.primary }]}>
-                <Text style={styles.confirmText}>Save payment</Text>
-              </Pressable>
-            </View>
-          </View>
-        </View>
-      </Modal>
-    </>
-  );
+    <Modal visible={showPayment} transparent animationType="slide" onRequestClose={()=>setShowPayment(false)}><View style={styles.modalBackdrop}><View style={[styles.modal,{backgroundColor:colors.surface}]}><Text style={[styles.modalTitle,{color:colors.text}]}>Record payment</Text><Text style={[styles.modalHint,{color:colors.textSecondary}]}>Remaining: {money(remaining)}</Text><View style={[styles.amountInput,{borderColor:colors.border}]}><Text style={[styles.naira,{color:colors.textSecondary}]}>₦</Text><TextInput autoFocus value={paymentText} onChangeText={v=>setPaymentText(v.replace(/[^0-9,]/g,""))} keyboardType="numeric" placeholder="0" placeholderTextColor={colors.textTertiary} style={[styles.paymentField,{color:colors.text}]}/></View><View style={styles.modalActions}><Pressable onPress={()=>setShowPayment(false)} style={[styles.cancel,{backgroundColor:colors.surfaceSecondary}]}><Text style={[styles.cancelText,{color:colors.text}]}>Cancel</Text></Pressable><Pressable disabled={!Number(paymentText.replace(/,/g,""))} onPress={recordPayment} style={[styles.confirm,{backgroundColor:colors.primary}]}><Text style={styles.confirmText}>Save payment</Text></Pressable></View></View></View></Modal>
+  </>;
 }
 
-const styles = StyleSheet.create({
-  content: { padding: Spacing.four, paddingBottom: Spacing.seven },
-  center: { flex: 1, alignItems: "center", justifyContent: "center", padding: Spacing.four },
-  notFound: { fontFamily: Fonts.semiBold, fontSize: FontSize.bodyLarge, marginBottom: Spacing.three },
-  smallButton: { paddingHorizontal: Spacing.four, paddingVertical: Spacing.two, borderRadius: Radius.medium },
-  smallButtonText: { color: "#FFFFFF", fontFamily: Fonts.semiBold },
-  header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: Spacing.four },
-  back: { width: 44, height: 44, alignItems: "center", justifyContent: "center" },
-  headerTitle: { fontFamily: Fonts.semiBold, fontSize: FontSize.bodyLarge },
-  hero: { borderRadius: Radius.large, padding: Spacing.four, alignItems: "center" },
-  person: { fontFamily: Fonts.semiBold, fontSize: FontSize.title },
-  remaining: { fontFamily: Fonts.bold, fontSize: 36, marginTop: Spacing.three },
-  remainingLabel: { fontFamily: Fonts.regular, fontSize: FontSize.body },
-  meta: { width: "100%", marginTop: Spacing.four, paddingTop: Spacing.three, borderTopWidth: 1, flexDirection: "row", justifyContent: "space-between" },
-  metaText: { fontFamily: Fonts.medium, fontSize: FontSize.small },
-  noteCard: { borderWidth: 1, borderRadius: Radius.medium, padding: Spacing.three, marginTop: Spacing.three },
-  noteLabel: { fontFamily: Fonts.medium, fontSize: FontSize.small },
-  noteText: { fontFamily: Fonts.regular, fontSize: FontSize.body, marginTop: Spacing.one, lineHeight: 21 },
-  sectionHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: Spacing.five, marginBottom: Spacing.two },
-  sectionTitle: { fontFamily: Fonts.semiBold, fontSize: FontSize.title },
-  paidText: { fontFamily: Fonts.regular, fontSize: FontSize.small },
-  ledger: { borderRadius: Radius.large, overflow: "hidden" },
-  ledgerRow: { minHeight: 68, paddingHorizontal: Spacing.three, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  ledgerTitle: { fontFamily: Fonts.medium, fontSize: FontSize.body },
-  ledgerDate: { fontFamily: Fonts.regular, fontSize: FontSize.small, marginTop: Spacing.one },
-  ledgerAmount: { fontFamily: Fonts.semiBold, fontSize: FontSize.body },
-  totalRow: { minHeight: 68, paddingHorizontal: Spacing.three, flexDirection: "row", alignItems: "center", justifyContent: "space-between", borderTopWidth: 1 },
-  totalLabel: { fontFamily: Fonts.semiBold, fontSize: FontSize.bodyLarge },
-  totalAmount: { fontFamily: Fonts.bold, fontSize: FontSize.bodyLarge },
-  primaryAction: { height: 54, borderRadius: Radius.large, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: Spacing.two, marginTop: Spacing.four },
-  primaryActionText: { fontFamily: Fonts.semiBold, fontSize: FontSize.bodyLarge },
-  secondaryAction: { height: 54, borderRadius: Radius.large, borderWidth: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: Spacing.two, marginTop: Spacing.two },
-  secondaryActionText: { fontFamily: Fonts.semiBold, fontSize: FontSize.bodyLarge },
-  modalBackdrop: { flex: 1, backgroundColor: "rgba(0,0,0,0.45)", justifyContent: "flex-end" },
-  modal: { borderTopLeftRadius: Radius.large, borderTopRightRadius: Radius.large, padding: Spacing.four, paddingBottom: Spacing.seven },
-  modalTitle: { fontFamily: Fonts.bold, fontSize: FontSize.title },
-  modalHint: { fontFamily: Fonts.regular, fontSize: FontSize.body, marginTop: Spacing.one, marginBottom: Spacing.three },
-  amountInput: { minHeight: 60, borderWidth: 1, borderRadius: Radius.medium, flexDirection: "row", alignItems: "center", paddingHorizontal: Spacing.three },
-  naira: { fontFamily: Fonts.medium, fontSize: FontSize.title },
-  paymentField: { flex: 1, fontFamily: Fonts.bold, fontSize: FontSize.title, marginLeft: Spacing.two },
-  modalActions: { flexDirection: "row", gap: Spacing.two, marginTop: Spacing.three },
-  cancel: { flex: 1, height: 52, borderRadius: Radius.medium, alignItems: "center", justifyContent: "center" },
-  cancelText: { fontFamily: Fonts.semiBold, fontSize: FontSize.body },
-  confirm: { flex: 1, height: 52, borderRadius: Radius.medium, alignItems: "center", justifyContent: "center" },
-  confirmText: { color: "#FFFFFF", fontFamily: Fonts.semiBold, fontSize: FontSize.body },
+const styles=StyleSheet.create({
+content:{padding:Spacing.four,paddingBottom:Spacing.seven},center:{flex:1,alignItems:"center",justifyContent:"center",padding:Spacing.four},notFound:{fontFamily:Fonts.semiBold,fontSize:17,marginBottom:16},smallButton:{paddingHorizontal:24,paddingVertical:8,borderRadius:12},smallButtonText:{color:"#fff",fontFamily:Fonts.semiBold},header:{flexDirection:"row",alignItems:"center",justifyContent:"space-between",marginBottom:16},back:{width:44,height:44,alignItems:"center",justifyContent:"center"},headerTitle:{fontFamily:Fonts.semiBold,fontSize:17},hero:{borderRadius:18,padding:24,alignItems:"center"},personAvatar:{width:54,height:54,borderRadius:27,alignItems:"center",justifyContent:"center"},personInitial:{fontFamily:Fonts.extraBold,fontSize:22},person:{fontFamily:Fonts.bold,fontSize:20,marginTop:10},remaining:{fontFamily:Fonts.extraBold,fontSize:38,marginTop:12},remainingLabel:{fontFamily:Fonts.regular,fontSize:13},progressTrack:{width:"100%",height:8,borderRadius:4,overflow:"hidden",marginTop:18},progressFill:{height:"100%",borderRadius:4},progressText:{fontFamily:Fonts.medium,fontSize:11,marginTop:7},meta:{width:"100%",marginTop:18,paddingTop:15,borderTopWidth:1,flexDirection:"row",justifyContent:"space-between"},metaText:{fontFamily:Fonts.medium,fontSize:11},noteCard:{borderWidth:1,borderRadius:12,padding:16,marginTop:12},noteLabel:{fontFamily:Fonts.medium,fontSize:11},noteText:{fontFamily:Fonts.regular,fontSize:14,marginTop:4,lineHeight:21},sectionHeader:{flexDirection:"row",justifyContent:"space-between",alignItems:"center",marginTop:28,marginBottom:9},sectionTitle:{fontFamily:Fonts.bold,fontSize:20},paidText:{fontFamily:Fonts.regular,fontSize:11},ledger:{borderRadius:18,overflow:"hidden"},ledgerRow:{minHeight:68,paddingHorizontal:16,flexDirection:"row",alignItems:"center",justifyContent:"space-between"},ledgerTitle:{fontFamily:Fonts.medium,fontSize:14},ledgerDate:{fontFamily:Fonts.regular,fontSize:11,marginTop:3},ledgerAmount:{fontFamily:Fonts.semiBold,fontSize:14},totalRow:{minHeight:68,paddingHorizontal:16,flexDirection:"row",alignItems:"center",justifyContent:"space-between",borderTopWidth:1},totalLabel:{fontFamily:Fonts.semiBold,fontSize:16},totalAmount:{fontFamily:Fonts.extraBold,fontSize:17},actions:{gap:8,marginTop:18},primaryAction:{height:54,borderRadius:18,flexDirection:"row",alignItems:"center",justifyContent:"center",gap:8},secondaryAction:{height:54,borderRadius:18,borderWidth:1,flexDirection:"row",alignItems:"center",justifyContent:"center",gap:8},actionText:{fontFamily:Fonts.semiBold,fontSize:15},modalBackdrop:{flex:1,backgroundColor:"rgba(0,0,0,.45)",justifyContent:"flex-end"},modal:{borderTopLeftRadius:18,borderTopRightRadius:18,padding:24,paddingBottom:64},modalTitle:{fontFamily:Fonts.bold,fontSize:24},modalHint:{fontFamily:Fonts.regular,fontSize:14,marginTop:4,marginBottom:16},amountInput:{minHeight:60,borderWidth:1,borderRadius:12,flexDirection:"row",alignItems:"center",paddingHorizontal:16},naira:{fontFamily:Fonts.medium,fontSize:24},paymentField:{flex:1,fontFamily:Fonts.extraBold,fontSize:26,marginLeft:8},modalActions:{flexDirection:"row",gap:8,marginTop:16},cancel:{flex:1,height:52,borderRadius:12,alignItems:"center",justifyContent:"center"},cancelText:{fontFamily:Fonts.semiBold},confirm:{flex:1,height:52,borderRadius:12,alignItems:"center",justifyContent:"center"},confirmText:{color:"#fff",fontFamily:Fonts.semiBold}
 });
