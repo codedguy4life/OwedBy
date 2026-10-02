@@ -23,10 +23,12 @@ export default function AddDebtScreen() {
   const [person, setPerson] = useState("");
   const [amountText, setAmountText] = useState("");
   const [type, setType] = useState<DebtType>("they_owe_me");
-  const [dueDate, setDueDate] = useState(() => { const d = new Date(); d.setDate(d.getDate() + 7); return d; });
+  const [borrowedDate, setBorrowedDate] = useState<Date | null>(null);
+  const [dueDate, setDueDate] = useState<Date | null>(null);
   const [note, setNote] = useState("");
   const [category, setCategory] = useState<DebtCategory>("general");
-  const [showPicker, setShowPicker] = useState(false);
+  const [showBorrowedPicker, setShowBorrowedPicker] = useState(false);
+  const [showDuePicker, setShowDuePicker] = useState(false);
   const [saving, setSaving] = useState(false);
   const amount = Number(amountText.replace(/,/g, ""));
   const valid = person.trim().length > 0 && amount > 0;
@@ -34,7 +36,7 @@ export default function AddDebtScreen() {
   const submit = async () => {
     if (!valid) return;
     setSaving(true);
-    const debt = await addDebt({ person: person.trim(), amount, type, dueDate: dueDate.toISOString(), note: note.trim(), category });
+    const debt = await addDebt({ person: person.trim(), amount, type, borrowedDate: borrowedDate?.toISOString(), dueDate: dueDate?.toISOString(), note: note.trim(), category });
     setSaving(false);
     router.replace({ pathname: "/debt/[id]", params: { id: debt.id } });
   };
@@ -63,9 +65,19 @@ export default function AddDebtScreen() {
           <Pressable onPress={()=>setType("i_owe_them")} style={[styles.toggleOption,type==="i_owe_them"&&{backgroundColor:colors.surface}]}><Ionicons name="arrow-up" size={17} color={type==="i_owe_them"?colors.terracotta:colors.textSecondary}/><Text style={[styles.toggleText,{color:type==="i_owe_them"?colors.text:colors.textSecondary}]}>I owe them</Text></Pressable>
         </View>
 
-        <Text style={[styles.label,{color:colors.text}]}>Due date</Text>
-        <Pressable onPress={()=>setShowPicker(true)} style={[styles.input,styles.dateButton,{backgroundColor:colors.surface,borderColor:colors.border}]}><Text style={[styles.dateText,{color:colors.text}]}>{dueDate.toLocaleDateString("en-NG",{day:"numeric",month:"long",year:"numeric"})}</Text><Ionicons name="calendar-outline" size={21} color={colors.textSecondary}/></Pressable>
-        {showPicker && <DateTimePicker value={dueDate} mode="date" minimumDate={new Date()} onValueChange={(_,selected)=>{setShowPicker(false);if(selected)setDueDate(selected)}} onDismiss={()=>setShowPicker(false)} presentation="dialog" />}
+        <Text style={[styles.label,{color:colors.text}]}>Borrowed date <Text style={{color:colors.textTertiary}}>(optional)</Text></Text>
+        <View style={styles.dateRow}>
+          <Pressable onPress={()=>setShowBorrowedPicker(true)} style={[styles.input,styles.dateButton,{backgroundColor:colors.surface,borderColor:colors.border,flex:1}]}><Text style={[styles.dateText,{color:borrowedDate?colors.text:colors.textTertiary}]}>{borrowedDate?borrowedDate.toLocaleDateString("en-NG",{day:"numeric",month:"long",year:"numeric"}):"Select date"}</Text><Ionicons name="calendar-outline" size={21} color={colors.textSecondary}/></Pressable>
+          {borrowedDate ? <Pressable onPress={()=>setBorrowedDate(null)} style={styles.clearDate}><Ionicons name="close-circle" size={20} color={colors.textTertiary}/></Pressable> : null}
+        </View>
+        {showBorrowedPicker && <DateTimePicker value={borrowedDate ?? new Date()} mode="date" maximumDate={new Date()} onValueChange={(_,selected)=>{setShowBorrowedPicker(false);if(selected)setBorrowedDate(selected)}} onDismiss={()=>setShowBorrowedPicker(false)} presentation="dialog" />}
+
+        <Text style={[styles.label,{color:colors.text}]}>Due date <Text style={{color:colors.textTertiary}}>(optional)</Text></Text>
+        <View style={styles.dateRow}>
+          <Pressable onPress={()=>setShowDuePicker(true)} style={[styles.input,styles.dateButton,{backgroundColor:colors.surface,borderColor:colors.border,flex:1}]}><Text style={[styles.dateText,{color:dueDate?colors.text:colors.textTertiary}]}>{dueDate?dueDate.toLocaleDateString("en-NG",{day:"numeric",month:"long",year:"numeric"}):"No due date"}</Text><Ionicons name="calendar-outline" size={21} color={colors.textSecondary}/></Pressable>
+          {dueDate ? <Pressable onPress={()=>setDueDate(null)} style={styles.clearDate}><Ionicons name="close-circle" size={20} color={colors.textTertiary}/></Pressable> : null}
+        </View>
+        {showDuePicker && <DateTimePicker value={dueDate ?? new Date()} mode="date" onValueChange={(_,selected)=>{setShowDuePicker(false);if(selected)setDueDate(selected)}} onDismiss={()=>setShowDuePicker(false)} presentation="dialog" />}
 
         <Text style={[styles.label,{color:colors.text}]}>Category <Text style={{color:colors.textTertiary}}>(optional)</Text></Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.categories}>{categories.map(([value,label])=><Pressable key={value} onPress={()=>setCategory(value)} style={[styles.category,{backgroundColor:category===value?colors.primary:colors.surface,borderColor:category===value?colors.primary:colors.border}]}><Text style={[styles.categoryText,{color:category===value?"#fff":colors.textSecondary}]}>{label}</Text></Pressable>)}</ScrollView>
@@ -82,5 +94,5 @@ export default function AddDebtScreen() {
 }
 
 const styles=StyleSheet.create({
-content:{padding:Spacing.four,paddingBottom:Spacing.seven},header:{flexDirection:"row",alignItems:"center",justifyContent:"space-between",marginBottom:Spacing.four},back:{width:44,height:44,alignItems:"center",justifyContent:"center"},title:{fontFamily:Fonts.bold,fontSize:FontSize.title},label:{fontFamily:Fonts.semiBold,fontSize:14,marginBottom:8,marginTop:16},input:{minHeight:54,borderWidth:1,borderRadius:Radius.medium,paddingHorizontal:16,fontFamily:Fonts.regular,fontSize:16},contactChip:{height:46,borderRadius:23,flexDirection:"row",alignItems:"center",paddingHorizontal:8,marginTop:8,gap:9},chipAvatar:{width:32,height:32,borderRadius:16,alignItems:"center",justifyContent:"center"},chipInitial:{color:"#fff",fontFamily:Fonts.bold},chipText:{flex:1,fontFamily:Fonts.semiBold,fontSize:13},amountInput:{minHeight:70,borderWidth:1,borderRadius:Radius.medium,flexDirection:"row",alignItems:"center",paddingHorizontal:16},naira:{fontFamily:Fonts.medium,fontSize:24},amountField:{flex:1,fontFamily:Fonts.extraBold,fontSize:30,marginLeft:8},quickRow:{flexDirection:"row",gap:8,marginTop:8},quick:{paddingHorizontal:12,paddingVertical:8,borderRadius:16},quickText:{fontFamily:Fonts.medium,fontSize:11},toggle:{flexDirection:"row",padding:4,borderRadius:Radius.medium},toggleOption:{flex:1,minHeight:48,alignItems:"center",justifyContent:"center",borderRadius:10,flexDirection:"row",gap:7},toggleText:{fontFamily:Fonts.medium,fontSize:13},dateButton:{flexDirection:"row",alignItems:"center",justifyContent:"space-between"},dateText:{fontFamily:Fonts.regular,fontSize:15},categories:{gap:8},category:{height:36,paddingHorizontal:13,borderRadius:18,borderWidth:1,alignItems:"center",justifyContent:"center"},categoryText:{fontFamily:Fonts.medium,fontSize:11},noteInput:{minHeight:100,borderWidth:1,borderRadius:Radius.medium,padding:16,fontFamily:Fonts.regular,fontSize:14,lineHeight:21},privacy:{marginTop:18,padding:13,borderRadius:Radius.medium,flexDirection:"row",gap:10},privacyTitle:{fontFamily:Fonts.semiBold,fontSize:12},privacyText:{fontFamily:Fonts.regular,fontSize:11,lineHeight:17,marginTop:2},submit:{height:56,borderRadius:Radius.large,alignItems:"center",justifyContent:"center",marginTop:20},submitText:{fontFamily:Fonts.bold,fontSize:16}
+content:{padding:Spacing.four,paddingBottom:Spacing.seven},header:{flexDirection:"row",alignItems:"center",justifyContent:"space-between",marginBottom:Spacing.four},back:{width:44,height:44,alignItems:"center",justifyContent:"center"},title:{fontFamily:Fonts.bold,fontSize:FontSize.title},label:{fontFamily:Fonts.semiBold,fontSize:14,marginBottom:8,marginTop:16},input:{minHeight:54,borderWidth:1,borderRadius:Radius.medium,paddingHorizontal:16,fontFamily:Fonts.regular,fontSize:16},contactChip:{height:46,borderRadius:23,flexDirection:"row",alignItems:"center",paddingHorizontal:8,marginTop:8,gap:9},chipAvatar:{width:32,height:32,borderRadius:16,alignItems:"center",justifyContent:"center"},chipInitial:{color:"#fff",fontFamily:Fonts.bold},chipText:{flex:1,fontFamily:Fonts.semiBold,fontSize:13},amountInput:{minHeight:70,borderWidth:1,borderRadius:Radius.medium,flexDirection:"row",alignItems:"center",paddingHorizontal:16},naira:{fontFamily:Fonts.medium,fontSize:24},amountField:{flex:1,fontFamily:Fonts.extraBold,fontSize:30,marginLeft:8},quickRow:{flexDirection:"row",gap:8,marginTop:8},quick:{paddingHorizontal:12,paddingVertical:8,borderRadius:16},quickText:{fontFamily:Fonts.medium,fontSize:11},toggle:{flexDirection:"row",padding:4,borderRadius:Radius.medium},toggleOption:{flex:1,minHeight:48,alignItems:"center",justifyContent:"center",borderRadius:10,flexDirection:"row",gap:7},toggleText:{fontFamily:Fonts.medium,fontSize:13},dateRow:{flexDirection:"row",alignItems:"center",gap:8},clearDate:{width:38,height:54,alignItems:"center",justifyContent:"center"},dateButton:{flexDirection:"row",alignItems:"center",justifyContent:"space-between"},dateText:{fontFamily:Fonts.regular,fontSize:15},categories:{gap:8},category:{height:36,paddingHorizontal:13,borderRadius:18,borderWidth:1,alignItems:"center",justifyContent:"center"},categoryText:{fontFamily:Fonts.medium,fontSize:11},noteInput:{minHeight:100,borderWidth:1,borderRadius:Radius.medium,padding:16,fontFamily:Fonts.regular,fontSize:14,lineHeight:21},privacy:{marginTop:18,padding:13,borderRadius:Radius.medium,flexDirection:"row",gap:10},privacyTitle:{fontFamily:Fonts.semiBold,fontSize:12},privacyText:{fontFamily:Fonts.regular,fontSize:11,lineHeight:17,marginTop:2},submit:{height:56,borderRadius:Radius.large,alignItems:"center",justifyContent:"center",marginTop:20},submitText:{fontFamily:Fonts.bold,fontSize:16}
 });
