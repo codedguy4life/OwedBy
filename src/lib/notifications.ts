@@ -1,8 +1,9 @@
-import * as Notifications from "expo-notifications";
 import { Platform } from "react-native";
 
 export async function scheduleDebtReminder(person: string, dueDate: string) {
   try {
+    const Notifications = await import("expo-notifications");
+
     const permissions = await Notifications.getPermissionsAsync();
     if (!permissions.granted) {
       const requested = await Notifications.requestPermissionsAsync();
@@ -38,7 +39,9 @@ export async function scheduleDebtReminder(person: string, dueDate: string) {
 
 export async function cancelDebtReminder(reminderId?: string) {
   if (!reminderId) return;
+
   try {
+    const Notifications = await import("expo-notifications");
     await Notifications.cancelScheduledNotificationAsync(reminderId);
   } catch {}
 }
