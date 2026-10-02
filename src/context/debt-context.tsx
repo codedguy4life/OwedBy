@@ -7,7 +7,8 @@ type NewDebt = {
   person: string;
   amount: number;
   type: DebtType;
-  dueDate: string;
+  borrowedDate?: string;
+  dueDate?: string;
   note: string;
   category: DebtCategory;
 };
