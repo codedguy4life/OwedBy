@@ -34,7 +34,7 @@ export default function HomeScreen() {
     .filter((debt) => remainingAmount(debt) > 0)
     .filter((debt) => filter === "all" || (filter === "due" ? dueLabel(debt.dueDate).tone !== "neutral" : debt.type === filter))
     .filter((debt) => debt.person.toLowerCase().includes(query.trim().toLowerCase()) || debt.note.toLowerCase().includes(query.trim().toLowerCase()))
-    .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime()), [debts, filter, query]);
+    .sort((a, b) => (a.dueDate ? new Date(a.dueDate).getTime() : Number.POSITIVE_INFINITY) - (b.dueDate ? new Date(b.dueDate).getTime() : Number.POSITIVE_INFINITY)), [debts, filter, query]);
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
