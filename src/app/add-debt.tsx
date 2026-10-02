@@ -44,7 +44,7 @@ export default function AddDebtScreen() {
       note: note.trim(),
     });
     setSaving(false);
-    router.replace("/debt/" + debt.id);
+    router.replace({ pathname: "/debt/[id]", params: { id: debt.id } });
   };
 
   return (
