@@ -9,7 +9,12 @@ export async function loadDebts(): Promise<Debt[]> {
     const value = await AsyncStorage.getItem(STORAGE_KEY);
     if (!value) return [];
     const parsed = JSON.parse(value);
-    return Array.isArray(parsed) ? parsed : [];
+    if (!Array.isArray(parsed)) return [];
+    return parsed.map((debt) => ({
+      ...debt,
+      category: debt.category ?? "general",
+      payments: Array.isArray(debt.payments) ? debt.payments : [],
+    }));
   } catch {
     return [];
   }
