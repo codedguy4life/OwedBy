@@ -1,9 +1,13 @@
 import { Platform } from "react-native";
 
-export async function scheduleDebtReminder(person: string, dueDate: string) {
+type ReminderOptions = {
+  title?: string;
+  body?: string;
+};
+
+export async function scheduleDebtReminder(person: string, dueDate: string, options: ReminderOptions = {}) {
   try {
     const Notifications = await import("expo-notifications");
-
     const permissions = await Notifications.getPermissionsAsync();
     if (!permissions.granted) {
       const requested = await Notifications.requestPermissionsAsync();
@@ -23,8 +27,8 @@ export async function scheduleDebtReminder(person: string, dueDate: string) {
 
     return await Notifications.scheduleNotificationAsync({
       content: {
-        title: "OwedBy reminder",
-        body: "Remember " + person + "'s debt today.",
+        title: options.title ?? "OwedBy reminder",
+        body: options.body ?? "Remember " + person + "'s debt today.",
         data: { person },
       },
       trigger: {
@@ -39,7 +43,6 @@ export async function scheduleDebtReminder(person: string, dueDate: string) {
 
 export async function cancelDebtReminder(reminderId?: string) {
   if (!reminderId) return;
-
   try {
     const Notifications = await import("expo-notifications");
     await Notifications.cancelScheduledNotificationAsync(reminderId);
