@@ -4,61 +4,53 @@ import { Platform } from "react-native";
 
 export const Colors = {
   light: {
-    background: "#F7F8FA",
+    background: "#F6F8F7",
     surface: "#FFFFFF",
-    surfaceSecondary: "#F0F2F5",
-
-    text: "#111827",
-    textSecondary: "#6B7280",
-    textTertiary: "#9CA3AF",
-
-    primary: "#2563EB",
-    primarySoft: "#E8F0FE",
-
-    success: "#16A34A",
-    successSoft: "#EAF7EE",
-
+    surfaceSecondary: "#EEF3F0",
+    text: "#10231B",
+    textSecondary: "#617169",
+    textTertiary: "#97A39D",
+    primary: "#059669",
+    primarySoft: "#E6F7F0",
+    success: "#059669",
+    successSoft: "#E6F7F0",
     warning: "#D97706",
-    warningSoft: "#FFF4E5",
-
+    warningSoft: "#FFF3DF",
+    terracotta: "#C96A4A",
+    terracottaSoft: "#FCECE6",
     danger: "#DC2626",
     dangerSoft: "#FDECEC",
-
-    border: "#E5E7EB",
+    border: "#DCE5E0",
   },
-
   dark: {
-    background: "#0F1115",
-    surface: "#181B21",
-    surfaceSecondary: "#22262E",
-
-    text: "#F9FAFB",
-    textSecondary: "#A1A1AA",
-    textTertiary: "#71717A",
-
-    primary: "#60A5FA",
-    primarySoft: "#1E3A5F",
-
-    success: "#4ADE80",
-    successSoft: "#163A25",
-
+    background: "#0B1511",
+    surface: "#12201A",
+    surfaceSecondary: "#1B2C24",
+    text: "#F4FAF7",
+    textSecondary: "#A6B7AF",
+    textTertiary: "#71827A",
+    primary: "#34D399",
+    primarySoft: "#143E30",
+    success: "#34D399",
+    successSoft: "#143E30",
     warning: "#FBBF24",
-    warningSoft: "#3D3014",
-
+    warningSoft: "#3A2D10",
+    terracotta: "#F08A66",
+    terracottaSoft: "#422219",
     danger: "#F87171",
     dangerSoft: "#421B1B",
-
-    border: "#2D323B",
+    border: "#294037",
   },
 } as const;
 
 export type ThemeColor = keyof typeof Colors.light & keyof typeof Colors.dark;
 
 export const Fonts = {
-  regular: "Inter_400Regular",
-  medium: "Inter_500Medium",
-  semiBold: "Inter_600SemiBold",
-  bold: "Inter_700Bold",
+  regular: "PlusJakartaSans_400Regular",
+  medium: "PlusJakartaSans_500Medium",
+  semiBold: "PlusJakartaSans_600SemiBold",
+  bold: "PlusJakartaSans_700Bold",
+  extraBold: "PlusJakartaSans_800ExtraBold",
 } as const;
 
 export const FontSize = {
@@ -95,10 +87,5 @@ export const IconSize = {
   xlarge: 34,
 } as const;
 
-export const BottomTabInset =
-  Platform.select({
-    ios: 50,
-    android: 80,
-  }) ?? 0;
-
+export const BottomTabInset = Platform.select({ ios: 50, android: 80 }) ?? 0;
 export const MaxContentWidth = 800;
