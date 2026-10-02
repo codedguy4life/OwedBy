@@ -33,7 +33,7 @@ export default function ReminderScreen(){
   const share=async()=>{await Share.share({message})};
   const whatsapp=()=>Linking.openURL("whatsapp://send?text="+encodeURIComponent(message)).catch(()=>share());
   const sms=()=>Linking.openURL("sms:?body="+encodeURIComponent(message)).catch(()=>Alert.alert("SMS unavailable","Your phone could not open the SMS composer."));
-  const schedule=async(enabled:boolean)=>{if(enabled&&!debt.dueDate){Alert.alert("No due date","Add a due date to this debt before scheduling an automatic reminder.");return}setAutoRemind(enabled);if(enabled){const reminderId=await scheduleDebtReminder(debt.person,debt.dueDate,{title:"OwedBy reminder",body:message});if(reminderId)await setReminder(debt.id,reminderId);else setAutoRemind(false)}else{await setReminder(debt.id,undefined)}};
+  const schedule=async(enabled:boolean)=>{const dueDate=debt.dueDate;if(enabled&&!dueDate){Alert.alert("No due date","Add a due date to this debt before scheduling an automatic reminder.");return}setAutoRemind(enabled);if(enabled){const reminderId=await scheduleDebtReminder(debt.person,dueDate,{title:"OwedBy reminder",body:message});if(reminderId)await setReminder(debt.id,reminderId);else setAutoRemind(false)}else{await setReminder(debt.id,undefined)}};
 
   return <ScrollView style={{backgroundColor:colors.background}} contentContainerStyle={styles.content}>
     <View style={styles.header}><Pressable onPress={()=>router.back()} style={styles.back}><Ionicons name="arrow-back" size={22} color={colors.text}/></Pressable><Text style={[styles.title,{color:colors.text}]}>Smart reminder</Text><View style={styles.back}/></View>
