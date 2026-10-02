@@ -1,4 +1,4 @@
-import DateTimePicker from "@react-native-community/datetimepicker";
+import DateTimePicker from "@expo/ui/community/datetime-picker";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { useState } from "react";
@@ -88,10 +88,12 @@ export default function AddDebtScreen() {
             value={dueDate}
             mode="date"
             minimumDate={new Date()}
-            onChange={(_, selected) => {
+            onValueChange={(_, selected) => {
               setShowPicker(false);
-              if (selected) setDueDate(selected);
+              setDueDate(selected);
             }}
+            onDismiss={() => setShowPicker(false)}
+            presentation="dialog"
           />
         )}
 
