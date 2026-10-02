@@ -84,7 +84,7 @@ export default function HomeScreen() {
               {recent.map((debt, index) => (
                 <Pressable
                   key={debt.id}
-                  onPress={() => router.push("/debt/" + debt.id)}
+                  onPress={() => router.push({ pathname: "/debt/[id]", params: { id: debt.id } })}
                   style={[styles.debtRow, index > 0 && { borderTopWidth: 1, borderTopColor: colors.border }]}
                 >
                   <View style={[styles.avatar, { backgroundColor: debt.type === "they_owe_me" ? colors.successSoft : colors.warningSoft }]}>
