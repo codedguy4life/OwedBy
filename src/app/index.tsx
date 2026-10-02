@@ -11,7 +11,8 @@ import { DebtType, remainingAmount } from "@/types/debt";
 
 const formatMoney = (value: number) => "₦" + value.toLocaleString("en-NG");
 
-function dueLabel(value: string) {
+function dueLabel(value?: string) {
+  if (!value) return { label: "No due date", tone: "neutral" as const };
   const date = new Date(value);
   const today = new Date();
   const diff = Math.ceil((new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime() - new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime()) / 86400000);
