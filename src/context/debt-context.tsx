@@ -1,7 +1,7 @@
 import { createContext, PropsWithChildren, useContext, useEffect, useMemo, useState } from "react";
 
 import { loadDebts, saveDebts } from "@/lib/storage";
-import { Debt, DebtType, Payment, remainingAmount } from "@/types/debt";
+import { Debt, DebtCategory, DebtType, Payment, remainingAmount } from "@/types/debt";
 
 type NewDebt = {
   person: string;
@@ -9,6 +9,7 @@ type NewDebt = {
   type: DebtType;
   dueDate: string;
   note: string;
+  category: DebtCategory;
 };
 
 type DebtContextValue = {
@@ -17,6 +18,7 @@ type DebtContextValue = {
   addDebt: (input: NewDebt) => Promise<Debt>;
   addPayment: (debtId: string, amount: number) => Promise<void>;
   deleteDebt: (debtId: string) => Promise<void>;
+  setReminder: (debtId: string, reminderId?: string) => Promise<void>;
   getDebt: (debtId: string) => Debt | undefined;
   totalOwedToMe: number;
   totalIOwe: number;
@@ -62,34 +64,23 @@ export function DebtProvider({ children }: PropsWithChildren) {
       amount,
       date: new Date().toISOString(),
     };
-    const next = debts.map((debt) =>
-      debt.id === debtId ? { ...debt, payments: [...debt.payments, payment] } : debt,
-    );
-    await persist(next);
+    await persist(debts.map((debt) => debt.id === debtId ? { ...debt, payments: [...debt.payments, payment] } : debt));
   };
 
-  const deleteDebt = async (debtId: string) => {
-    await persist(debts.filter((debt) => debt.id !== debtId));
+  const deleteDebt = async (debtId: string) => persist(debts.filter((debt) => debt.id !== debtId));
+
+  const setReminder = async (debtId: string, reminderId?: string) => {
+    await persist(debts.map((debt) => debt.id === debtId ? { ...debt, reminderId } : debt));
   };
 
   const getDebt = (debtId: string) => debts.find((debt) => debt.id === debtId);
 
-  const totals = useMemo(
-    () => ({
-      totalOwedToMe: debts
-        .filter((debt) => debt.type === "they_owe_me")
-        .reduce((sum, debt) => sum + remainingAmount(debt), 0),
-      totalIOwe: debts
-        .filter((debt) => debt.type === "i_owe_them")
-        .reduce((sum, debt) => sum + remainingAmount(debt), 0),
-    }),
-    [debts],
-  );
+  const totals = useMemo(() => ({
+    totalOwedToMe: debts.filter((debt) => debt.type === "they_owe_me").reduce((sum, debt) => sum + remainingAmount(debt), 0),
+    totalIOwe: debts.filter((debt) => debt.type === "i_owe_them").reduce((sum, debt) => sum + remainingAmount(debt), 0),
+  }), [debts]);
 
-  const value = useMemo(
-    () => ({ debts, loading, addDebt, addPayment, deleteDebt, getDebt, refresh, ...totals }),
-    [debts, loading, totals],
-  );
+  const value = useMemo(() => ({ debts, loading, addDebt, addPayment, deleteDebt, setReminder, getDebt, refresh, ...totals }), [debts, loading, totals]);
 
   return <DebtContext.Provider value={value}>{children}</DebtContext.Provider>;
 }
