@@ -6,124 +6,81 @@ import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text
 
 import { Colors, FontSize, Fonts, IconSize, Radius, Spacing } from "@/constants/theme";
 import { useDebts } from "@/context/debt-context";
-import { DebtType } from "@/types/debt";
+import { DebtCategory, DebtType } from "@/types/debt";
 
 const money = (value: string) => {
   const digits = value.replace(/[^0-9]/g, "");
   return digits ? Number(digits).toLocaleString("en-NG") : "";
 };
 
-export default function AddDebtScreen() {
-  const scheme = useColorScheme();
-  const colors = Colors[scheme === "dark" ? "dark" : "light"];
-  const { addDebt } = useDebts();
+const categories: Array<[DebtCategory, string]> = [
+  ["general", "General"], ["family", "Family"], ["food", "Food"], ["transport", "Transport"], ["work", "Work"], ["rent", "Rent"],
+];
 
+export default function AddDebtScreen() {
+  const colors = Colors[useColorScheme() === "dark" ? "dark" : "light"];
+  const { addDebt } = useDebts();
   const [person, setPerson] = useState("");
   const [amountText, setAmountText] = useState("");
   const [type, setType] = useState<DebtType>("they_owe_me");
-  const [dueDate, setDueDate] = useState(() => {
-    const date = new Date();
-    date.setDate(date.getDate() + 7);
-    return date;
-  });
+  const [dueDate, setDueDate] = useState(() => { const d = new Date(); d.setDate(d.getDate() + 7); return d; });
   const [note, setNote] = useState("");
+  const [category, setCategory] = useState<DebtCategory>("general");
   const [showPicker, setShowPicker] = useState(false);
   const [saving, setSaving] = useState(false);
-
   const amount = Number(amountText.replace(/,/g, ""));
   const valid = person.trim().length > 0 && amount > 0;
 
   const submit = async () => {
     if (!valid) return;
     setSaving(true);
-    const debt = await addDebt({
-      person: person.trim(),
-      amount,
-      type,
-      dueDate: dueDate.toISOString(),
-      note: note.trim(),
-    });
+    const debt = await addDebt({ person: person.trim(), amount, type, dueDate: dueDate.toISOString(), note: note.trim(), category });
     setSaving(false);
     router.replace({ pathname: "/debt/[id]", params: { id: debt.id } });
   };
+
+  const increment = (n: number) => setAmountText(money(String(amount + n)));
 
   return (
     <KeyboardAvoidingView style={{ flex: 1, backgroundColor: colors.background }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <View style={styles.header}>
-          <Pressable onPress={() => router.back()} style={styles.back}>
-            <Ionicons name="arrow-back" size={IconSize.medium} color={colors.text} />
-          </Pressable>
-          <Text style={[styles.title, { color: colors.text }]}>Add debt</Text>
-          <View style={styles.back} />
+          <Pressable onPress={() => router.back()} style={styles.back}><Ionicons name="arrow-back" size={22} color={colors.text} /></Pressable>
+          <Text style={[styles.title, { color: colors.text }]}>Quick add debt</Text><View style={styles.back} />
         </View>
 
-        <Text style={[styles.label, { color: colors.text }]}>Who?</Text>
-        <TextInput value={person} onChangeText={setPerson} placeholder="e.g. Emeka" placeholderTextColor={colors.textTertiary} style={[styles.input, { color: colors.text, backgroundColor: colors.surface, borderColor: colors.border }]} autoCapitalize="words" />
+        <Text style={[styles.label,{color:colors.text}]}>Who?</Text>
+        <TextInput value={person} onChangeText={setPerson} placeholder="e.g. Emeka" placeholderTextColor={colors.textTertiary} style={[styles.input,{color:colors.text,backgroundColor:colors.surface,borderColor:colors.border}]} autoCapitalize="words" />
+        {person.trim() ? <View style={[styles.contactChip,{backgroundColor:colors.primarySoft}]}><View style={[styles.chipAvatar,{backgroundColor:colors.primary}]}><Text style={styles.chipInitial}>{person.trim().charAt(0).toUpperCase()}</Text></View><Text style={[styles.chipText,{color:colors.text}]}>{person.trim()}</Text><Ionicons name="checkmark-circle" size={18} color={colors.primary} /></View> : null}
 
-        <Text style={[styles.label, { color: colors.text }]}>Amount</Text>
-        <View style={[styles.amountInput, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-          <Text style={[styles.naira, { color: colors.textSecondary }]}>₦</Text>
-          <TextInput value={amountText} onChangeText={(value) => setAmountText(money(value))} placeholder="0" placeholderTextColor={colors.textTertiary} keyboardType="numeric" style={[styles.amountField, { color: colors.text }]} />
+        <Text style={[styles.label,{color:colors.text}]}>Amount</Text>
+        <View style={[styles.amountInput,{backgroundColor:colors.surface,borderColor:colors.border}]}><Text style={[styles.naira,{color:colors.textSecondary}]}>₦</Text><TextInput value={amountText} onChangeText={(v)=>setAmountText(money(v))} placeholder="0" placeholderTextColor={colors.textTertiary} keyboardType="numeric" style={[styles.amountField,{color:colors.text}]} /></View>
+        <View style={styles.quickRow}>{[1000,5000,10000].map(n=><Pressable key={n} onPress={()=>increment(n)} style={[styles.quick,{backgroundColor:colors.surfaceSecondary}]}><Text style={[styles.quickText,{color:colors.textSecondary}]}>+₦{n.toLocaleString()}</Text></Pressable>)}</View>
+
+        <Text style={[styles.label,{color:colors.text}]}>Direction</Text>
+        <View style={[styles.toggle,{backgroundColor:colors.surfaceSecondary}]}>
+          <Pressable onPress={()=>setType("they_owe_me")} style={[styles.toggleOption,type==="they_owe_me"&&{backgroundColor:colors.surface}]}><Ionicons name="arrow-down" size={17} color={type==="they_owe_me"?colors.success:colors.textSecondary}/><Text style={[styles.toggleText,{color:type==="they_owe_me"?colors.text:colors.textSecondary}]}>They owe me</Text></Pressable>
+          <Pressable onPress={()=>setType("i_owe_them")} style={[styles.toggleOption,type==="i_owe_them"&&{backgroundColor:colors.surface}]}><Ionicons name="arrow-up" size={17} color={type==="i_owe_them"?colors.terracotta:colors.textSecondary}/><Text style={[styles.toggleText,{color:type==="i_owe_them"?colors.text:colors.textSecondary}]}>I owe them</Text></Pressable>
         </View>
 
-        <Text style={[styles.label, { color: colors.text }]}>Type</Text>
-        <View style={[styles.toggle, { backgroundColor: colors.surfaceSecondary }]}>
-          <Pressable onPress={() => setType("they_owe_me")} style={[styles.toggleOption, type === "they_owe_me" && { backgroundColor: colors.surface }]}>
-            <Text style={[styles.toggleText, { color: type === "they_owe_me" ? colors.text : colors.textSecondary }]}>They owe me</Text>
-          </Pressable>
-          <Pressable onPress={() => setType("i_owe_them")} style={[styles.toggleOption, type === "i_owe_them" && { backgroundColor: colors.surface }]}>
-            <Text style={[styles.toggleText, { color: type === "i_owe_them" ? colors.text : colors.textSecondary }]}>I owe them</Text>
-          </Pressable>
-        </View>
+        <Text style={[styles.label,{color:colors.text}]}>Due date</Text>
+        <Pressable onPress={()=>setShowPicker(true)} style={[styles.input,styles.dateButton,{backgroundColor:colors.surface,borderColor:colors.border}]}><Text style={[styles.dateText,{color:colors.text}]}>{dueDate.toLocaleDateString("en-NG",{day:"numeric",month:"long",year:"numeric"})}</Text><Ionicons name="calendar-outline" size={21} color={colors.textSecondary}/></Pressable>
+        {showPicker && <DateTimePicker value={dueDate} mode="date" minimumDate={new Date()} onValueChange={(_,selected)=>{setShowPicker(false);if(selected)setDueDate(selected)}} onDismiss={()=>setShowPicker(false)} presentation="dialog" />}
 
-        <Text style={[styles.label, { color: colors.text }]}>Due date</Text>
-        <Pressable onPress={() => setShowPicker(true)} style={[styles.input, styles.dateButton, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-          <Text style={[styles.dateText, { color: colors.text }]}>{dueDate.toLocaleDateString("en-NG", { day: "numeric", month: "long", year: "numeric" })}</Text>
-          <Ionicons name="calendar-outline" size={IconSize.medium} color={colors.textSecondary} />
-        </Pressable>
+        <Text style={[styles.label,{color:colors.text}]}>Category <Text style={{color:colors.textTertiary}}>(optional)</Text></Text>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.categories}>{categories.map(([value,label])=><Pressable key={value} onPress={()=>setCategory(value)} style={[styles.category,{backgroundColor:category===value?colors.primary:colors.surface,borderColor:category===value?colors.primary:colors.border}]}><Text style={[styles.categoryText,{color:category===value?"#fff":colors.textSecondary}]}>{label}</Text></Pressable>)}</ScrollView>
 
-        {showPicker && (
-          <DateTimePicker
-            value={dueDate}
-            mode="date"
-            minimumDate={new Date()}
-            onValueChange={(_, selected) => {
-              setShowPicker(false);
-              setDueDate(selected);
-            }}
-            onDismiss={() => setShowPicker(false)}
-            presentation="dialog"
-          />
-        )}
+        <Text style={[styles.label,{color:colors.text}]}>Note <Text style={{color:colors.textTertiary}}>(optional)</Text></Text>
+        <TextInput value={note} onChangeText={setNote} placeholder="What was it for?" placeholderTextColor={colors.textTertiary} multiline textAlignVertical="top" style={[styles.noteInput,{color:colors.text,backgroundColor:colors.surface,borderColor:colors.border}]} />
 
-        <Text style={[styles.label, { color: colors.text }]}>Note <Text style={{ color: colors.textTertiary }}>(optional)</Text></Text>
-        <TextInput value={note} onChangeText={setNote} placeholder="What was it for?" placeholderTextColor={colors.textTertiary} multiline textAlignVertical="top" style={[styles.noteInput, { color: colors.text, backgroundColor: colors.surface, borderColor: colors.border }]} />
+        <View style={[styles.privacy,{backgroundColor:colors.surfaceSecondary}]}><Ionicons name="lock-closed-outline" size={18} color={colors.primary}/><View style={{flex:1}}><Text style={[styles.privacyTitle,{color:colors.text}]}>Private by design</Text><Text style={[styles.privacyText,{color:colors.textSecondary}]}>No bank login, card number or BVN is needed. Your notebook stays on this device.</Text></View></View>
 
-        <Pressable disabled={!valid || saving} onPress={submit} style={[styles.submit, { backgroundColor: valid ? colors.primary : colors.surfaceSecondary }]}>
-          <Text style={[styles.submitText, { color: valid ? "#FFFFFF" : colors.textTertiary }]}>{saving ? "Adding..." : "Add debt"}</Text>
-        </Pressable>
+        <Pressable disabled={!valid||saving} onPress={submit} style={[styles.submit,{backgroundColor:valid?colors.primary:colors.surfaceSecondary}]}><Text style={[styles.submitText,{color:valid?"#fff":colors.textTertiary}]}>{saving?"Adding...":"Add debt"}</Text></Pressable>
       </ScrollView>
     </KeyboardAvoidingView>
   );
 }
 
-const styles = StyleSheet.create({
-  content: { padding: Spacing.four, paddingBottom: Spacing.seven },
-  header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: Spacing.five },
-  back: { width: 44, height: 44, alignItems: "center", justifyContent: "center" },
-  title: { fontFamily: Fonts.bold, fontSize: FontSize.title },
-  label: { fontFamily: Fonts.semiBold, fontSize: FontSize.body, marginBottom: Spacing.two, marginTop: Spacing.three },
-  input: { minHeight: 54, borderWidth: 1, borderRadius: Radius.medium, paddingHorizontal: Spacing.three, fontFamily: Fonts.regular, fontSize: FontSize.bodyLarge },
-  amountInput: { minHeight: 64, borderWidth: 1, borderRadius: Radius.medium, flexDirection: "row", alignItems: "center", paddingHorizontal: Spacing.three },
-  naira: { fontFamily: Fonts.medium, fontSize: FontSize.title },
-  amountField: { flex: 1, fontFamily: Fonts.bold, fontSize: FontSize.title, marginLeft: Spacing.two },
-  toggle: { flexDirection: "row", padding: Spacing.one, borderRadius: Radius.medium },
-  toggleOption: { flex: 1, minHeight: 48, alignItems: "center", justifyContent: "center", borderRadius: Radius.small },
-  toggleText: { fontFamily: Fonts.medium, fontSize: FontSize.body },
-  dateButton: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  dateText: { fontFamily: Fonts.regular, fontSize: FontSize.bodyLarge },
-  noteInput: { minHeight: 110, borderWidth: 1, borderRadius: Radius.medium, padding: Spacing.three, fontFamily: Fonts.regular, fontSize: FontSize.body, lineHeight: 21 },
-  submit: { height: 56, borderRadius: Radius.large, alignItems: "center", justifyContent: "center", marginTop: Spacing.five },
-  submitText: { fontFamily: Fonts.semiBold, fontSize: FontSize.bodyLarge },
+const styles=StyleSheet.create({
+content:{padding:Spacing.four,paddingBottom:Spacing.seven},header:{flexDirection:"row",alignItems:"center",justifyContent:"space-between",marginBottom:Spacing.four},back:{width:44,height:44,alignItems:"center",justifyContent:"center"},title:{fontFamily:Fonts.bold,fontSize:FontSize.title},label:{fontFamily:Fonts.semiBold,fontSize:14,marginBottom:8,marginTop:16},input:{minHeight:54,borderWidth:1,borderRadius:Radius.medium,paddingHorizontal:16,fontFamily:Fonts.regular,fontSize:16},contactChip:{height:46,borderRadius:23,flexDirection:"row",alignItems:"center",paddingHorizontal:8,marginTop:8,gap:9},chipAvatar:{width:32,height:32,borderRadius:16,alignItems:"center",justifyContent:"center"},chipInitial:{color:"#fff",fontFamily:Fonts.bold},chipText:{flex:1,fontFamily:Fonts.semiBold,fontSize:13},amountInput:{minHeight:70,borderWidth:1,borderRadius:Radius.medium,flexDirection:"row",alignItems:"center",paddingHorizontal:16},naira:{fontFamily:Fonts.medium,fontSize:24},amountField:{flex:1,fontFamily:Fonts.extraBold,fontSize:30,marginLeft:8},quickRow:{flexDirection:"row",gap:8,marginTop:8},quick:{paddingHorizontal:12,paddingVertical:8,borderRadius:16},quickText:{fontFamily:Fonts.medium,fontSize:11},toggle:{flexDirection:"row",padding:4,borderRadius:Radius.medium},toggleOption:{flex:1,minHeight:48,alignItems:"center",justifyContent:"center",borderRadius:10,flexDirection:"row",gap:7},toggleText:{fontFamily:Fonts.medium,fontSize:13},dateButton:{flexDirection:"row",alignItems:"center",justifyContent:"space-between"},dateText:{fontFamily:Fonts.regular,fontSize:15},categories:{gap:8},category:{height:36,paddingHorizontal:13,borderRadius:18,borderWidth:1,alignItems:"center",justifyContent:"center"},categoryText:{fontFamily:Fonts.medium,fontSize:11},noteInput:{minHeight:100,borderWidth:1,borderRadius:Radius.medium,padding:16,fontFamily:Fonts.regular,fontSize:14,lineHeight:21},privacy:{marginTop:18,padding:13,borderRadius:Radius.medium,flexDirection:"row",gap:10},privacyTitle:{fontFamily:Fonts.semiBold,fontSize:12},privacyText:{fontFamily:Fonts.regular,fontSize:11,lineHeight:17,marginTop:2},submit:{height:56,borderRadius:Radius.large,alignItems:"center",justifyContent:"center",marginTop:20},submitText:{fontFamily:Fonts.bold,fontSize:16}
 });
