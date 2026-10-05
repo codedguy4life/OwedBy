@@ -1,17 +1,15 @@
-export type DebtType = "they_owe_me" | "i_owe_them";
+import { CurrencyCode } from "@/lib/currency";
 
+export type DebtType = "they_owe_me" | "i_owe_them";
 export type DebtCategory = "general" | "family" | "food" | "transport" | "work" | "rent" | "other";
 
-export type Payment = {
-  id: string;
-  amount: number;
-  date: string;
-};
+export type Payment = { id: string; amount: number; date: string };
 
 export type Debt = {
   id: string;
   person: string;
   amount: number;
+  currency: CurrencyCode;
   type: DebtType;
   borrowedDate?: string;
   dueDate?: string;
