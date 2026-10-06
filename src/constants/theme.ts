@@ -4,23 +4,23 @@ import { Platform } from "react-native";
 
 export const Colors = {
   light: {
-    background: "#F6F8F7",
+    background: "#F4F7F5",
     surface: "#FFFFFF",
-    surfaceSecondary: "#EEF3F0",
+    surfaceSecondary: "#EAF1ED",
     text: "#10231B",
     textSecondary: "#617169",
     textTertiary: "#97A39D",
-    primary: "#059669",
-    primarySoft: "#E6F7F0",
-    success: "#059669",
-    successSoft: "#E6F7F0",
-    warning: "#D97706",
-    warningSoft: "#FFF3DF",
-    terracotta: "#C96A4A",
-    terracottaSoft: "#FCECE6",
+    primary: "#087F5B",
+    primarySoft: "#DDF5EC",
+    success: "#16A36F",
+    successSoft: "#E1F6ED",
+    warning: "#D98A24",
+    warningSoft: "#FFF1D8",
+    terracotta: "#C76B4B",
+    terracottaSoft: "#FBE9E3",
     danger: "#DC2626",
     dangerSoft: "#FDECEC",
-    border: "#DCE5E0",
+    border: "#D7E2DC",
   },
   dark: {
     background: "#0B1511",
@@ -46,11 +46,11 @@ export const Colors = {
 export type ThemeColor = keyof typeof Colors.light & keyof typeof Colors.dark;
 
 export const Fonts = {
-  regular: "PlusJakartaSans_400Regular",
-  medium: "PlusJakartaSans_500Medium",
-  semiBold: "PlusJakartaSans_600SemiBold",
-  bold: "PlusJakartaSans_700Bold",
-  extraBold: "PlusJakartaSans_800ExtraBold",
+  regular: "Inter_400Regular",
+  medium: "Inter_500Medium",
+  semiBold: "Inter_600SemiBold",
+  bold: "Inter_700Bold",
+  extraBold: "Inter_800ExtraBold",
 } as const;
 
 export const FontSize = {
