@@ -14,7 +14,8 @@ export default function DebtDetailScreen(){
   const colors=Colors[useColorScheme()==="dark"?"dark":"light"];
   const {debts,getDebt,addPayment,deleteDebt}=useDebts();
   const [paymentText,setPaymentText]=useState("");
-  const [showPayment,setShowPayment]=useState(false);\n  const [paymentError,setPaymentError]=useState("");
+  const [showPayment,setShowPayment]=useState(false);
+  const [paymentError,setPaymentError]=useState("");
   const debt=getDebt(id);
   if(!debt)return <View style={[styles.center,{backgroundColor:colors.background}]}><Text style={[styles.notFound,{color:colors.text}]}>Debt not found.</Text><Pressable onPress={()=>router.replace("/")} style={[styles.smallButton,{backgroundColor:colors.primary}]}><Text style={styles.smallButtonText}>Back home</Text></Pressable></View>;
 
