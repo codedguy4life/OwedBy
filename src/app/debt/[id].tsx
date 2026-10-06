@@ -9,7 +9,7 @@ import { paymentProgress, remainingAmount } from "@/types/debt";
 
 const date=(v:string)=>new Date(v).toLocaleDateString(undefined,{day:"numeric",month:"short",year:"numeric"});
 
-export default function DebtDetailScreen(){
+export default function DebtDetailScreen(){\n  const goBack=()=>router.canGoBack()?router.back():router.replace("/");
   const {id}=useLocalSearchParams<{id:string}>();
   const colors=Colors[useColorScheme()==="dark"?"dark":"light"];
   const {debts,getDebt,addPayment,deleteDebt}=useDebts();
@@ -27,7 +27,7 @@ export default function DebtDetailScreen(){
 
   return <>
     <ScrollView style={{backgroundColor:colors.background}} contentContainerStyle={styles.content}>
-      <View style={styles.header}><Pressable onPress={()=>router.back()} style={styles.back}><Ionicons name="arrow-back" size={22} color={colors.text}/></Pressable><Text style={[styles.headerTitle,{color:colors.text}]}>Debt detail</Text><Pressable onPress={remove} style={styles.back}><Ionicons name="trash-outline" size={21} color={colors.danger}/></Pressable></View>
+      <View style={styles.header}><Pressable onPress={goBack} style={styles.back}><Ionicons name="arrow-back" size={22} color={colors.text}/></Pressable><Text style={[styles.headerTitle,{color:colors.text}]}>Debt detail</Text><Pressable onPress={remove} style={styles.back}><Ionicons name="trash-outline" size={21} color={colors.danger}/></Pressable></View>
       <View style={[styles.hero,{backgroundColor:colors.surface}]}>
         <View style={[styles.personAvatar,{backgroundColor:debt.type==="they_owe_me"?colors.successSoft:colors.terracottaSoft}]}><Text style={[styles.personInitial,{color:debt.type==="they_owe_me"?colors.success:colors.terracotta}]}>{debt.person.charAt(0).toUpperCase()}</Text></View>
         <Text style={[styles.person,{color:colors.text}]}>{debt.person}</Text>
