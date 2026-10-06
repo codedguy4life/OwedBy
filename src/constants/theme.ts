@@ -4,9 +4,9 @@ import { Platform } from "react-native";
 
 export const Colors = {
   light: {
-    background: "#F4F7F5",
+    background: "#FFFFFF",
     surface: "#FFFFFF",
-    surfaceSecondary: "#EAF1ED",
+    surfaceSecondary: "#F3F6F4",
     text: "#10231B",
     textSecondary: "#617169",
     textTertiary: "#97A39D",
