@@ -98,12 +98,22 @@ export default function HomeScreen() {
               </Text>
             </View>
           </View>
-          <Pressable
-            onPress={() => router.push("/add-debt")}
-            style={[styles.headerAdd, { backgroundColor: colors.primarySoft }]}
-          >
-            <Ionicons name="add" size={22} color={colors.primary} />
-          </Pressable>
+          <View style={styles.headerActions}>
+            <Pressable
+              onPress={() => router.push("/settings")}
+              style={[styles.headerButton, { backgroundColor: colors.surface, borderColor: colors.border }]}
+              accessibilityLabel="Open settings"
+            >
+              <Ionicons name="settings-outline" size={21} color={colors.textSecondary} />
+            </Pressable>
+            <Pressable
+              onPress={() => router.push("/add-debt")}
+              style={[styles.headerButton, { backgroundColor: colors.primarySoft }]}
+              accessibilityLabel="Add debt"
+            >
+              <Ionicons name="add" size={22} color={colors.primary} />
+            </Pressable>
+          </View>
         </View>
 
         <View style={styles.summaryRow}>
@@ -383,10 +393,12 @@ const styles = StyleSheet.create({
   brandRow: { flexDirection: "row", alignItems: "center", gap: 12 },
   brand: { fontFamily: Fonts.extraBold, fontSize: 24 },
   subtitle: { fontFamily: Fonts.regular, fontSize: 12, marginTop: 2 },
-  headerAdd: {
+  headerActions: { flexDirection: "row", alignItems: "center", gap: 8 },
+  headerButton: {
     width: 44,
     height: 44,
     borderRadius: 22,
+    borderWidth: 1,
     alignItems: "center",
     justifyContent: "center",
   },
