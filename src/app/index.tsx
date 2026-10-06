@@ -15,7 +15,7 @@ import { BottomNav } from "@/components/bottom-nav";
 import { OwedByLogo } from "@/components/owedby-logo";
 import { Colors, Fonts, Radius, Spacing } from "@/constants/theme";
 import { useDebts } from "@/context/debt-context";
-import { DebtType, remainingAmount } from "@/types/debt";
+import { DebtType, remainingAmount, currencyTotals } from "@/types/debt";
 import { formatMoney } from "@/lib/currency";
 import { useSettings } from "@/context/settings-context";
 
@@ -56,8 +56,10 @@ export default function HomeScreen() {
   const { debts, loading } = useDebts();
   const { defaultCurrency } = useSettings();
   const currencyDebts = debts.filter((debt) => debt.currency === defaultCurrency);
-  const totalOwedToMe = currencyDebts.filter((d) => d.type === "they_owe_me").reduce((sum, d) => sum + remainingAmount(d), 0);
-  const totalIOwe = currencyDebts.filter((d) => d.type === "i_owe_them").reduce((sum, d) => sum + remainingAmount(d), 0);
+  const totalsToMe = currencyTotals(debts, "they_owe_me");
+  const totalsIOwe = currencyTotals(debts, "i_owe_them");
+  const totalOwedToMe = totalsToMe[defaultCurrency] ?? 0;
+  const totalIOwe = totalsIOwe[defaultCurrency] ?? 0;
   const [filter, setFilter] = useState<Filter>("all");
   const [query, setQuery] = useState("");
 
