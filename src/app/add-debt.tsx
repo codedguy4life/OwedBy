@@ -31,12 +31,13 @@ export default function AddDebtScreen() {
   const amount=Number(amountText.replace(/,/g,""));
   const valid=person.trim().length>0&&amount>0;
   const submit=async()=>{if(!valid)return;setSaving(true);const debt=await addDebt({person:person.trim(),amount,currency,type,borrowedDate:borrowedDate?.toISOString(),dueDate:dueDate?.toISOString(),note:note.trim(),category});setSaving(false);router.replace({pathname:"/debt/[id]",params:{id:debt.id}});};
+  const goBack=()=>router.canGoBack()?router.back():router.replace("/");
   const quickAmounts = currency==="JPY" ? [1000,5000,10000] : ["USD","GBP","EUR","CAD","AUD"].includes(currency) ? [10,50,100] : currency==="INR" ? [100,500,1000] : [1000,5000,10000];
   const increment=(n:number)=>setAmountText(money(String(amount+n),currency));
 
   return <KeyboardAvoidingView style={{flex:1,backgroundColor:colors.background}} behavior={Platform.OS==="ios"?"padding":undefined}>
     <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-      <View style={styles.header}><Pressable onPress={()=>router.back()} style={styles.back}><Ionicons name="arrow-back" size={22} color={colors.text}/></Pressable><Text style={[styles.title,{color:colors.text}]}>Add debt</Text><View style={styles.back}/></View>
+      <View style={styles.header}><Pressable onPress={goBack} style={styles.back}><Ionicons name="arrow-back" size={22} color={colors.text}/></Pressable><Text style={[styles.title,{color:colors.text}]}>Add debt</Text><View style={styles.back}/></View>
       <Text style={[styles.label,{color:colors.text}]}>Who?</Text>
       <TextInput value={person} onChangeText={setPerson} placeholder="e.g. Emeka" placeholderTextColor={colors.textTertiary} autoCapitalize="words" style={[styles.input,{color:colors.text,backgroundColor:colors.surface,borderColor:colors.border}]}/>
       {person.trim()?<View style={[styles.contactChip,{backgroundColor:colors.primarySoft}]}><View style={[styles.avatar,{backgroundColor:colors.primary}]}><Text style={styles.avatarText}>{person.trim()[0].toUpperCase()}</Text></View><Text style={[styles.chipText,{color:colors.text}]}>{person.trim()}</Text><Ionicons name="checkmark-circle" size={18} color={colors.primary}/></View>:null}
@@ -53,11 +54,11 @@ export default function AddDebtScreen() {
 
       <Text style={[styles.label,{color:colors.text}]}>Borrowed date <Text style={{color:colors.textTertiary}}>(optional)</Text></Text>
       <Pressable onPress={()=>setShowBorrowed(true)} style={[styles.input,styles.dateButton,{backgroundColor:colors.surface,borderColor:colors.border}]}><Text style={[styles.dateText,{color:borrowedDate?colors.text:colors.textTertiary}]}>{borrowedDate?borrowedDate.toLocaleDateString(undefined,{day:"numeric",month:"long",year:"numeric"}):"Select date"}</Text><Ionicons name="calendar-outline" size={21} color={colors.textSecondary}/></Pressable>
-      {showBorrowed?<DateTimePicker value={borrowedDate??new Date()} mode="date" maximumDate={new Date()} onValueChange={(event)=>{setShowBorrowed(false);const selected=event.value;if(selected)setBorrowedDate(selected)}} onDismiss={()=>setShowBorrowed(false)} presentation="dialog"/>:null}
+      {showBorrowed?<DateTimePicker value={borrowedDate??new Date()} mode="date" maximumDate={new Date()} onValueChange={(_,selectedDate)=>{setShowBorrowed(false);if(selectedDate)setBorrowedDate(selectedDate)}} onDismiss={()=>setShowBorrowed(false)} presentation="dialog"/>:null}
 
       <Text style={[styles.label,{color:colors.text}]}>Due date <Text style={{color:colors.textTertiary}}>(optional)</Text></Text>
       <Pressable onPress={()=>setShowDue(true)} style={[styles.input,styles.dateButton,{backgroundColor:colors.surface,borderColor:colors.border}]}><Text style={[styles.dateText,{color:dueDate?colors.text:colors.textTertiary}]}>{dueDate?dueDate.toLocaleDateString(undefined,{day:"numeric",month:"long",year:"numeric"}):"No due date"}</Text><Ionicons name="calendar-outline" size={21} color={colors.textSecondary}/></Pressable>
-      {showDue?<DateTimePicker value={dueDate??new Date()} mode="date" minimumDate={new Date()} onValueChange={(event)=>{setShowDue(false);const selected=event.value;if(selected)setDueDate(selected)}} onDismiss={()=>setShowDue(false)} presentation="dialog"/>:null}
+      {showDue?<DateTimePicker value={dueDate??new Date()} mode="date" minimumDate={new Date()} onValueChange={(_,selectedDate)=>{setShowDue(false);if(selectedDate)setDueDate(selectedDate)}} onDismiss={()=>setShowDue(false)} presentation="dialog"/>:null}
 
       <Text style={[styles.label,{color:colors.text}]}>Category <Text style={{color:colors.textTertiary}}>(optional)</Text></Text>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.categories}>{categories.map(([value,label])=><Pressable key={value} onPress={()=>setCategory(value)} style={[styles.category,{backgroundColor:category===value?colors.primary:colors.surface,borderColor:category===value?colors.primary:colors.border}]}><Text style={[styles.categoryText,{color:category===value?"#fff":colors.textSecondary}]}>{label}</Text></Pressable>)}</ScrollView>
