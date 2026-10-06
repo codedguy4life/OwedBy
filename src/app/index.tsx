@@ -57,13 +57,6 @@ export default function HomeScreen() {
   const [filter, setFilter] = useState<Filter>("all");
   const [query, setQuery] = useState("");
 
-<<<<<<< Updated upstream
-  const filtered = useMemo(() => debts
-    .filter((debt) => remainingAmount(debt) > 0)
-    .filter((debt) => filter === "all" || (filter === "due" ? dueLabel(debt.dueDate).tone !== "neutral" : debt.type === filter))
-    .filter((debt) => debt.person.toLowerCase().includes(query.trim().toLowerCase()) || debt.note.toLowerCase().includes(query.trim().toLowerCase()))
-    .sort((a, b) => (a.dueDate ? new Date(a.dueDate).getTime() : Number.POSITIVE_INFINITY) - (b.dueDate ? new Date(b.dueDate).getTime() : Number.POSITIVE_INFINITY)), [debts, filter, query]);
-=======
   const filtered = useMemo(
     () =>
       debts
@@ -82,11 +75,12 @@ export default function HomeScreen() {
         )
         .sort(
           (a, b) =>
-            new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime(),
+            (a.dueDate ? new Date(a.dueDate).getTime() : Number.POSITIVE_INFINITY) -
+            (b.dueDate ? new Date(b.dueDate).getTime() : Number.POSITIVE_INFINITY),
         ),
     [debts, filter, query],
   );
->>>>>>> Stashed changes
+
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
