@@ -20,8 +20,29 @@ export type Debt = {
   reminderId?: string;
 };
 
-export const remainingAmount = (debt: Debt) =>
-  Math.max(0, debt.amount - debt.payments.reduce((total, payment) => total + payment.amount, 0));
+export const totalPaid = (debt: Debt) => debt.payments.reduce((total, payment) => total + Math.max(0, payment.amount), 0);
+
+export const remainingAmount = (debt: Debt) => Math.max(0, debt.amount - totalPaid(debt));
 
 export const paymentProgress = (debt: Debt) =>
-  debt.amount > 0 ? Math.min(1, (debt.amount - remainingAmount(debt)) / debt.amount) : 0;
+  debt.amount > 0 ? Math.min(1, totalPaid(debt) / debt.amount) : 0;
+
+export const isSettled = (debt: Debt) => remainingAmount(debt) <= 0;
+
+export const currencyTotals = (debts: Debt[], type: DebtType) =>
+  debts.filter((debt) => debt.type === type).reduce<Record<CurrencyCode, number>>((totals, debt) => {
+    totals[debt.currency] = (totals[debt.currency] ?? 0) + remainingAmount(debt);
+    return totals;
+  }, {} as Record<CurrencyCode, number>);
+
+export const currencyRecordedTotals = (debts: Debt[]) =>
+  debts.reduce<Record<CurrencyCode, number>>((totals, debt) => {
+    totals[debt.currency] = (totals[debt.currency] ?? 0) + debt.amount;
+    return totals;
+  }, {} as Record<CurrencyCode, number>);
+
+export const currencyPaidTotals = (debts: Debt[]) =>
+  debts.reduce<Record<CurrencyCode, number>>((totals, debt) => {
+    totals[debt.currency] = (totals[debt.currency] ?? 0) + totalPaid(debt);
+    return totals;
+  }, {} as Record<CurrencyCode, number>);
