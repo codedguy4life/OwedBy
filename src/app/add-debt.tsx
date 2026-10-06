@@ -9,7 +9,7 @@ import { useSettings } from "@/context/settings-context";
 import { CURRENCIES, CurrencyCode, currencySymbol } from "@/lib/currency";
 import { DebtCategory, DebtType } from "@/types/debt";
 
-const money = (value: string) => { const digits=value.replace(/[^0-9]/g,""); return digits ? Number(digits).toLocaleString() : ""; };
+const money = (value: string, currency: CurrencyCode) => { const cleaned=value.replace(/,/g,"").replace(/[^0-9.]/g,""); const parts=cleaned.split("."); const decimals=currency==="JPY"?0:2; const integer=parts[0]||""; const fraction=parts[1]?.slice(0,decimals) ?? ""; if(!integer&&!fraction)return ""; const grouped=integer?Number(integer).toLocaleString("en-US"): "0"; return decimals&&parts.length>1 ? `${grouped}.${fraction}` : grouped; };
 const categories: Array<[DebtCategory,string]> = [["general","General"],["family","Family"],["food","Food"],["transport","Transport"],["work","Work"],["rent","Rent"],["other","Other"]];
 
 export default function AddDebtScreen() {
@@ -31,7 +31,8 @@ export default function AddDebtScreen() {
   const amount=Number(amountText.replace(/,/g,""));
   const valid=person.trim().length>0&&amount>0;
   const submit=async()=>{if(!valid)return;setSaving(true);const debt=await addDebt({person:person.trim(),amount,currency,type,borrowedDate:borrowedDate?.toISOString(),dueDate:dueDate?.toISOString(),note:note.trim(),category});setSaving(false);router.replace({pathname:"/debt/[id]",params:{id:debt.id}});};
-  const increment=(n:number)=>setAmountText(money(String(amount+n)));
+  const quickAmounts = currency==="JPY" ? [1000,5000,10000] : ["USD","GBP","EUR","CAD","AUD"].includes(currency) ? [10,50,100] : currency==="INR" ? [100,500,1000] : [1000,5000,10000];
+  const increment=(n:number)=>setAmountText(money(String(amount+n),currency));
 
   return <KeyboardAvoidingView style={{flex:1,backgroundColor:colors.background}} behavior={Platform.OS==="ios"?"padding":undefined}>
     <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
@@ -41,8 +42,8 @@ export default function AddDebtScreen() {
       {person.trim()?<View style={[styles.contactChip,{backgroundColor:colors.primarySoft}]}><View style={[styles.avatar,{backgroundColor:colors.primary}]}><Text style={styles.avatarText}>{person.trim()[0].toUpperCase()}</Text></View><Text style={[styles.chipText,{color:colors.text}]}>{person.trim()}</Text><Ionicons name="checkmark-circle" size={18} color={colors.primary}/></View>:null}
 
       <Text style={[styles.label,{color:colors.text}]}>Amount</Text>
-      <View style={[styles.amountInput,{backgroundColor:colors.surface,borderColor:colors.border}]}><Text style={[styles.currencySymbol,{color:colors.textSecondary}]}>{currencySymbol(currency)}</Text><TextInput value={amountText} onChangeText={v=>setAmountText(money(v))} placeholder="0" placeholderTextColor={colors.textTertiary} keyboardType="numeric" style={[styles.amountField,{color:colors.text}]}/></View>
-      <View style={styles.quickRow}>{[1000,5000,10000].map(n=><Pressable key={n} onPress={()=>increment(n)} style={[styles.quick,{backgroundColor:colors.surfaceSecondary}]}><Text style={[styles.quickText,{color:colors.textSecondary}]}>+{currencySymbol(currency)}{n.toLocaleString()}</Text></Pressable>)}</View>
+      <View style={[styles.amountInput,{backgroundColor:colors.surface,borderColor:colors.border}]}><Text style={[styles.currencySymbol,{color:colors.textSecondary}]}>{currencySymbol(currency)}</Text><TextInput value={amountText} onChangeText={v=>setAmountText(money(v,currency))} placeholder="0" placeholderTextColor={colors.textTertiary} keyboardType={currency==="NGN"||currency==="GHS"||currency==="KES"||currency==="ZAR"||currency==="JPY"||currency==="INR"?"numeric":"decimal-pad"} style={[styles.amountField,{color:colors.text}]}/></View>
+      <View style={styles.quickRow}>{quickAmounts.map(n=><Pressable key={n} onPress={()=>increment(n)} style={[styles.quick,{backgroundColor:colors.surfaceSecondary}]}><Text style={[styles.quickText,{color:colors.textSecondary}]}>+{currencySymbol(currency)}{n.toLocaleString()}</Text></Pressable>)}</View>
 
       <Text style={[styles.label,{color:colors.text}]}>Currency</Text>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.currencyRow}>{CURRENCIES.map(c=><Pressable key={c.code} onPress={()=>setCurrency(c.code)} style={[styles.currencyChip,{backgroundColor:currency===c.code?colors.primary:colors.surface,borderColor:currency===c.code?colors.primary:colors.border}]}><Text style={[styles.currencyCode,{color:currency===c.code?"#fff":colors.text}]}>{c.code}</Text><Text style={[styles.currencyName,{color:currency===c.code?"#fff":colors.textSecondary}]}>{c.symbol}</Text></Pressable>)}</ScrollView>
