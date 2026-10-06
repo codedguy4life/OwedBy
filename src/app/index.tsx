@@ -156,7 +156,7 @@ export default function HomeScreen() {
                 <Ionicons name="arrow-up" size={17} color={colors.warning} />
               </View>
               <View style={[styles.countPill, { backgroundColor: colors.warningSoft }]}>
-                <Text style={[styles.countText, { color: colors.warning }]}>{countPeople(outgoing)} ending</Text>
+                <Text style={[styles.countText, { color: colors.warning }]}>{countPeople(outgoing)} outgoing</Text>
                 <Ionicons name="chevron-down" size={12} color={colors.warning} />
               </View>
             </View>
