@@ -36,6 +36,9 @@ export function DebtProvider({ children }: PropsWithChildren) {
   };
 
   const addPayment = async (debtId: string, amount: number) => {
+    const currentDebt=debts.find((debt)=>debt.id===debtId);
+    if(!currentDebt) throw new Error("Debt not found.");
+    if(amount>remainingAmount(currentDebt)) throw new Error("Payment cannot be greater than the remaining balance.");
     const payment: Payment = { id: Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 9), amount, date: new Date().toISOString() };
     await persist(debts.map((debt) => debt.id === debtId ? { ...debt, payments: [...debt.payments, payment] } : debt));
   };
