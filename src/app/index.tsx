@@ -16,8 +16,8 @@ import { OwedByLogo } from "@/components/owedby-logo";
 import { Colors, Fonts, Radius, Spacing } from "@/constants/theme";
 import { useDebts } from "@/context/debt-context";
 import { DebtType, remainingAmount } from "@/types/debt";
-
-const formatMoney = (value: number) => "₦" + value.toLocaleString("en-NG");
+import { formatMoney } from "@/lib/currency";
+import { useSettings } from "@/context/settings-context";
 
 function dueLabel(value?: string) {
   if (!value) return { label: "No due date", tone: "neutral" as const };
@@ -53,7 +53,11 @@ type Filter = "all" | DebtType | "due";
 export default function HomeScreen() {
   const scheme = useColorScheme();
   const colors = Colors[scheme === "dark" ? "dark" : "light"];
-  const { debts, totalOwedToMe, totalIOwe, loading } = useDebts();
+  const { debts, loading } = useDebts();
+  const { defaultCurrency } = useSettings();
+  const currencyDebts = debts.filter((debt) => debt.currency === defaultCurrency);
+  const totalOwedToMe = currencyDebts.filter((d) => d.type === "they_owe_me").reduce((sum, d) => sum + remainingAmount(d), 0);
+  const totalIOwe = currencyDebts.filter((d) => d.type === "i_owe_them").reduce((sum, d) => sum + remainingAmount(d), 0);
   const [filter, setFilter] = useState<Filter>("all");
   const [query, setQuery] = useState("");
 
@@ -132,7 +136,7 @@ export default function HomeScreen() {
               People owe you
             </Text>
             <Text style={[styles.amount, { color: colors.text }]}>
-              {formatMoney(totalOwedToMe)}
+              {formatMoney(totalOwedToMe, defaultCurrency)}
             </Text>
           </View>
           <View
@@ -150,7 +154,7 @@ export default function HomeScreen() {
               You owe
             </Text>
             <Text style={[styles.amount, { color: colors.text }]}>
-              {formatMoney(totalIOwe)}
+              {formatMoney(totalIOwe, defaultCurrency)}
             </Text>
           </View>
         </View>
@@ -350,7 +354,7 @@ export default function HomeScreen() {
                   </View>
                   <View style={styles.debtAmountWrap}>
                     <Text style={[styles.debtAmount, { color: colors.text }]}>
-                      {formatMoney(remainingAmount(debt))}
+                      {formatMoney(remainingAmount(debt), debt.currency)}
                     </Text>
                     <Ionicons
                       name="chevron-forward"
@@ -414,6 +418,7 @@ const styles = StyleSheet.create({
   },
   cardLabel: { fontFamily: Fonts.medium, fontSize: 12 },
   amount: { fontFamily: Fonts.extraBold, fontSize: 24, marginTop: 3 },
+  currencyHint: { fontFamily: Fonts.medium, fontSize: 10, marginTop: 4 },
   search: {
     height: 52,
     borderWidth: 1,
