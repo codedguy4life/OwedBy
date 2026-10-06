@@ -1,33 +1,297 @@
+import DateTimePicker from "@expo/ui/community/datetime-picker";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { useMemo, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View, useColorScheme } from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, View, useColorScheme } from "react-native";
 import { BottomNav } from "@/components/bottom-nav";
 import { OwedByLogo } from "@/components/owedby-logo";
 import { Colors, Fonts } from "@/constants/theme";
 import { useDebts } from "@/context/debt-context";
-import { useSettings } from "@/context/settings-context";
 import { formatMoney } from "@/lib/currency";
-import { DebtType, currencyTotals, remainingAmount } from "@/types/debt";
+import { remainingAmount } from "@/types/debt";
 
-type Filter = "all" | DebtType | "due";
-const dueInfo=(v?:string)=>{if(!v)return {label:"No due date",tone:"neutral" as const};const d=new Date(v),t=new Date();const a=new Date(t.getFullYear(),t.getMonth(),t.getDate()).getTime(),b=new Date(d.getFullYear(),d.getMonth(),d.getDate()).getTime(),n=Math.round((b-a)/86400000);if(n<0)return {label:"Overdue",tone:"danger" as const};if(n===0)return {label:"Due today",tone:"danger" as const};return {label:"Due "+d.toLocaleDateString("en-NG",{month:"short",day:"numeric"}),tone:n<=7?"warning" as const:"neutral" as const};};
+const dayKey = (value?: string) => {
+  if (!value) return "";
+  const d = new Date(value);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+};
 
-export default function HomeScreen(){
- const colors=Colors[useColorScheme()==="dark"?"dark":"light"];const {debts,loading}=useDebts();const {defaultCurrency}=useSettings();const [filter,setFilter]=useState<Filter>("all");const [query,setQuery]=useState("");
- const owed=currencyTotals(debts,"they_owe_me")[defaultCurrency]??0;const owe=currencyTotals(debts,"i_owe_them")[defaultCurrency]??0;const net=owed-owe;
- const debtors=new Set(debts.filter(d=>d.currency===defaultCurrency&&d.type==="they_owe_me"&&remainingAmount(d)>0).map(d=>d.person.trim().toLowerCase())).size;
- const list=useMemo(()=>debts.filter(d=>d.currency===defaultCurrency&&remainingAmount(d)>0).filter(d=>filter==="all"||(filter==="due"?(!!d.dueDate&&dueInfo(d.dueDate).tone!=="neutral"):d.type===filter)).filter(d=>{const q=query.trim().toLowerCase();return !q||d.person.toLowerCase().includes(q)||d.note.toLowerCase().includes(q)}).sort((a,b)=>(a.dueDate?new Date(a.dueDate).getTime():Infinity)-(b.dueDate?new Date(b.dueDate).getTime():Infinity)),[debts,defaultCurrency,filter,query]);
- return <View style={[styles.container,{backgroundColor:colors.background}]}><ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-  <View style={styles.top}><View style={styles.identity}><OwedByLogo size={42}/><View><Text style={[styles.brand,{color:colors.text}]}>OwedBy</Text><Text style={[styles.greeting,{color:colors.textSecondary}]}>Good morning 👋</Text></View></View><Pressable onPress={()=>router.push("/settings")} style={[styles.profile,{backgroundColor:colors.primarySoft}]}><Text style={[styles.profileText,{color:colors.primary}]}>O</Text></Pressable></View>
-  <View style={[styles.netCard,{backgroundColor:colors.primary}]}><View><Text style={styles.eyebrow}>YOUR MONEY STANDING</Text><Text style={styles.net}>{net>=0?"Net +"+formatMoney(net,defaultCurrency):"Net -"+formatMoney(Math.abs(net),defaultCurrency)}</Text><Text style={styles.netHint}>{defaultCurrency} · open debts only</Text></View><View style={styles.netIcon}><Ionicons name={net>=0?"trending-up":"trending-down"} size={24} color="#fff"/></View></View>
-  <View style={styles.cards}><View style={[styles.card,{backgroundColor:colors.surface}]}><View style={[styles.cardIcon,{backgroundColor:colors.successSoft}]}><Ionicons name="arrow-down" size={18} color={colors.success}/></View><Text style={[styles.label,{color:colors.textSecondary}]}>People owe you</Text><Text style={[styles.amount,{color:colors.text}]}>{formatMoney(owed,defaultCurrency)}</Text><Text style={[styles.meta,{color:colors.textTertiary}]}>{debtors} active debtor{debtors===1?"":"s"}</Text></View><View style={[styles.card,{backgroundColor:colors.surface}]}><View style={[styles.cardIcon,{backgroundColor:colors.warningSoft}]}><Ionicons name="arrow-up" size={18} color={colors.warning}/></View><Text style={[styles.label,{color:colors.textSecondary}]}>You owe</Text><Text style={[styles.amount,{color:colors.text}]}>{formatMoney(owe,defaultCurrency)}</Text><Text style={[styles.meta,{color:colors.textTertiary}]}>outstanding</Text></View></View>
-  <View style={[styles.search,{backgroundColor:colors.surface,borderColor:colors.border}]}><Ionicons name="search-outline" size={19} color={colors.textTertiary}/><TextInput value={query} onChangeText={setQuery} placeholder="Search your ledger" placeholderTextColor={colors.textTertiary} style={[styles.input,{color:colors.text}]}/>{query?<Pressable onPress={()=>setQuery("")}><Ionicons name="close-circle" size={18} color={colors.textTertiary}/></Pressable>:null}</View>
-  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filters}>{([["all","All"],["they_owe_me","They owe me"],["i_owe_them","You owe"],["due","Due soon"]] as const).map(([v,l])=><Pressable key={v} onPress={()=>setFilter(v)} style={[styles.filter,{backgroundColor:filter===v?colors.text:colors.surface,borderColor:filter===v?colors.text:colors.border}]}><Text style={[styles.filterText,{color:filter===v?"#fff":colors.textSecondary}]}>{l}</Text></Pressable>)}</ScrollView>
-  <View style={styles.section}><View><Text style={[styles.sectionTitle,{color:colors.text}]}>Recent ledger</Text><Text style={[styles.sectionSub,{color:colors.textSecondary}]}>The money you still need to remember.</Text></View><Text style={[styles.count,{color:colors.textTertiary}]}>{list.length}</Text></View>
-  {loading?<View style={[styles.empty,{backgroundColor:colors.surface}]}><Text style={[styles.emptyText,{color:colors.textSecondary}]}>Loading your notebook…</Text></View>:list.length?<View style={[styles.ledger,{backgroundColor:colors.surface}]}>{list.map((d,i)=>{const due=dueInfo(d.dueDate);const tone=d.type==="they_owe_me"?colors.success:colors.terracotta;const soft=d.type==="they_owe_me"?colors.successSoft:colors.terracottaSoft;const dc=due.tone==="danger"?colors.danger:due.tone==="warning"?colors.warning:colors.textSecondary;const db=due.tone==="danger"?colors.dangerSoft:due.tone==="warning"?colors.warningSoft:colors.surfaceSecondary;return <Pressable key={d.id} onPress={()=>router.push({pathname:"/debt/[id]",params:{id:d.id}})} style={[styles.row,i>0&&{borderTopWidth:1,borderTopColor:colors.border}]}><View style={[styles.personAvatar,{backgroundColor:soft}]}><Text style={[styles.initial,{color:tone}]}>{d.person.charAt(0).toUpperCase()}</Text></View><View style={styles.info}><Text style={[styles.person,{color:colors.text}]}>{d.person}</Text><View style={styles.metaRow}><View style={[styles.badge,{backgroundColor:db}]}><Text style={[styles.badgeText,{color:dc}]}>{due.label}</Text></View><Text style={[styles.direction,{color:tone}]}>{d.type==="they_owe_me"?"They owe you":"You owe"}</Text></View></View><View style={styles.right}><Text style={[styles.rowAmount,{color:colors.text}]}>{formatMoney(remainingAmount(d),d.currency)}</Text><Ionicons name="chevron-forward" size={16} color={colors.textTertiary}/></View></Pressable>})}</View>:<View style={[styles.empty,{backgroundColor:colors.surface,borderColor:colors.border}]}><View style={[styles.emptyIcon,{backgroundColor:colors.primarySoft}]}><Ionicons name="book-outline" size={25} color={colors.primary}/></View><Text style={[styles.emptyTitle,{color:colors.text}]}>{debts.length?"Nothing here yet":"Your notebook is empty"}</Text><Text style={[styles.emptyText,{color:colors.textSecondary}]}>{debts.length?"Try another filter or currency.":"Add your first debt and OwedBy will remember it for you."}</Text></View>}
-  <Pressable onPress={()=>router.push("/add-debt")} style={[styles.add,{backgroundColor:colors.primary}]}><Ionicons name="add" size={22} color="#fff"/><Text style={styles.addText}>Add debt</Text></Pressable>
-  <View style={[styles.tip,{backgroundColor:colors.surfaceSecondary}]}><View style={[styles.tipIcon,{backgroundColor:colors.surface}]}><Ionicons name="shield-checkmark-outline" size={20} color={colors.primary}/></View><View style={{flex:1}}><Text style={[styles.tipTitle,{color:colors.text}]}>Private by design</Text><Text style={[styles.tipText,{color:colors.textSecondary}]}>No bank login, card details or BVN needed. Just a simple personal ledger.</Text></View></View>
- </ScrollView><BottomNav/></View>;
+const formatDate = (date: Date) =>
+  date.toLocaleDateString("en-NG", { weekday: "short", day: "numeric", month: "short" });
+
+const dueInfo = (value?: string) => {
+  if (!value) return { label: "No due date", tone: "neutral" as const };
+  const due = new Date(value);
+  const today = new Date();
+  const a = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime();
+  const b = new Date(due.getFullYear(), due.getMonth(), due.getDate()).getTime();
+  const days = Math.round((b - a) / 86400000);
+  if (days < 0) return { label: "Overdue", tone: "danger" as const };
+  if (days === 0) return { label: "Due today", tone: "danger" as const };
+  return { label: `Due ${due.toLocaleDateString("en-NG", { month: "short", day: "numeric" })}`, tone: days <= 7 ? "warning" as const : "neutral" as const };
+};
+
+export default function HomeScreen() {
+  const colors = Colors[useColorScheme() === "dark" ? "dark" : "light"];
+  const { debts, loading } = useDebts();
+  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [showDatePicker, setShowDatePicker] = useState(false);
+
+  const openDebts = useMemo(
+    () => debts.filter((d) => remainingAmount(d) > 0),
+    [debts]
+  );
+
+  const incoming = useMemo(() => openDebts.filter((d) => d.type === "they_owe_me"), [openDebts]);
+  const outgoing = useMemo(() => openDebts.filter((d) => d.type === "i_owe_them"), [openDebts]);
+
+  const countPeople = (items: typeof debts) =>
+    new Set(items.map((d) => d.person.trim().toLowerCase())).size;
+
+  const currencyTotal = (items: typeof debts) => {
+    const totals = new Map<string, number>();
+    items.forEach((d) => totals.set(d.currency, (totals.get(d.currency) ?? 0) + remainingAmount(d)));
+    return [...totals.entries()];
+  };
+
+  const recent = useMemo(
+    () =>
+      [...debts]
+        .sort((a, b) => {
+          const ad = new Date(a.createdAt || a.borrowedDate || 0).getTime();
+          const bd = new Date(b.createdAt || b.borrowedDate || 0).getTime();
+          return bd - ad;
+        })
+        .slice(0, 8),
+    [debts]
+  );
+
+  const selectedDayTransactions = useMemo(
+    () => recent.filter((d) => dayKey(d.createdAt || d.borrowedDate) === dayKey(selectedDate.toISOString())),
+    [recent, selectedDate]
+  );
+
+  const history = selectedDayTransactions.length ? selectedDayTransactions : recent;
+
+  const renderTotals = (items: typeof debts) =>
+    currencyTotal(items).map(([currency, total]) => (
+      <Text key={currency} style={[styles.summaryAmount, { color: colors.text }]}>
+        {formatMoney(total, currency)}
+      </Text>
+    ));
+
+  return (
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        <View style={styles.header}>
+          <View style={styles.identity}>
+            <OwedByLogo size={42} />
+            <View>
+              <Text style={[styles.greeting, { color: colors.text }]}>Good morning 👋</Text>
+              <Text style={[styles.brand, { color: colors.textSecondary }]}>Your personal ledger</Text>
+            </View>
+          </View>
+          <Pressable
+            onPress={() => router.push("/settings")}
+            style={[styles.settings, { backgroundColor: colors.surface, borderColor: colors.border }]}
+            accessibilityLabel="Open settings"
+          >
+            <Ionicons name="settings-outline" size={20} color={colors.textSecondary} />
+          </Pressable>
+        </View>
+
+        <View style={styles.titleRow}>
+          <View>
+            <Text style={[styles.title, { color: colors.text }]}>OwedBy</Text>
+            <Text style={[styles.subtitle, { color: colors.textSecondary }]}>Keep every promise on paper, without the paper.</Text>
+          </View>
+        </View>
+
+        <Pressable
+          onPress={() => setShowDatePicker(true)}
+          style={[styles.dateButton, { backgroundColor: colors.surface, borderColor: colors.border }]}
+        >
+          <View style={[styles.dateIcon, { backgroundColor: colors.primarySoft }]}>
+            <Ionicons name="calendar-outline" size={18} color={colors.primary} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.dateLabel, { color: colors.textTertiary }]}>SELECT DATE</Text>
+            <Text style={[styles.dateValue, { color: colors.text }]}>{formatDate(selectedDate)}</Text>
+          </View>
+          <Ionicons name="chevron-down" size={18} color={colors.textSecondary} />
+        </Pressable>
+
+        {showDatePicker ? (
+          <DateTimePicker
+            value={selectedDate}
+            mode="date"
+            onValueChange={(_, date) => {
+              setShowDatePicker(false);
+              if (date) setSelectedDate(date);
+            }}
+            onDismiss={() => setShowDatePicker(false)}
+            presentation="dialog"
+          />
+        ) : null}
+
+        <View style={styles.summaryGrid}>
+          <View style={[styles.summaryCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <View style={styles.summaryTop}>
+              <View style={[styles.summaryIcon, { backgroundColor: colors.successSoft }]}>
+                <Ionicons name="arrow-down" size={17} color={colors.success} />
+              </View>
+              <View style={[styles.countPill, { backgroundColor: colors.successSoft }]}>
+                <Text style={[styles.countText, { color: colors.success }]}>{countPeople(incoming)} incoming</Text>
+                <Ionicons name="chevron-down" size={12} color={colors.success} />
+              </View>
+            </View>
+            <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>People owe you</Text>
+            {renderTotals(incoming)}
+            <Text style={[styles.summaryCaption, { color: colors.textTertiary }]}>Receivable</Text>
+          </View>
+
+          <View style={[styles.summaryCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <View style={styles.summaryTop}>
+              <View style={[styles.summaryIcon, { backgroundColor: colors.warningSoft }]}>
+                <Ionicons name="arrow-up" size={17} color={colors.warning} />
+              </View>
+              <View style={[styles.countPill, { backgroundColor: colors.warningSoft }]}>
+                <Text style={[styles.countText, { color: colors.warning }]}>{countPeople(outgoing)} ending</Text>
+                <Ionicons name="chevron-down" size={12} color={colors.warning} />
+              </View>
+            </View>
+            <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>People you owe</Text>
+            {renderTotals(outgoing)}
+            <Text style={[styles.summaryCaption, { color: colors.textTertiary }]}>Payable</Text>
+          </View>
+        </View>
+
+        <View style={styles.sectionHeader}>
+          <View>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>Recent transactions</Text>
+            <Text style={[styles.sectionSub, { color: colors.textSecondary }]}>
+              {selectedDayTransactions.length ? `Activity on ${formatDate(selectedDate)}` : "Your latest ledger entries"}
+            </Text>
+          </View>
+          <Text style={[styles.sectionCount, { color: colors.textTertiary }]}>{history.length}</Text>
+        </View>
+
+        {loading ? (
+          <View style={[styles.empty, { backgroundColor: colors.surface }]}>
+            <Text style={[styles.emptyText, { color: colors.textSecondary }]}>Loading your notebook…</Text>
+          </View>
+        ) : history.length ? (
+          <View style={[styles.history, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            {history.map((debt, index) => {
+              const incomingDebt = debt.type === "they_owe_me";
+              const accent = incomingDebt ? colors.success : colors.terracotta;
+              const soft = incomingDebt ? colors.successSoft : colors.terracottaSoft;
+              const due = dueInfo(debt.dueDate);
+              const dueColor = due.tone === "danger" ? colors.danger : due.tone === "warning" ? colors.warning : colors.textTertiary;
+              return (
+                <Pressable
+                  key={debt.id}
+                  onPress={() => router.push({ pathname: "/debt/[id]", params: { id: debt.id } })}
+                  style={[styles.transaction, index > 0 && { borderTopWidth: 1, borderTopColor: colors.border }]}
+                >
+                  <View style={[styles.avatar, { backgroundColor: soft }]}>
+                    <Text style={[styles.avatarText, { color: accent }]}>{debt.person.trim().charAt(0).toUpperCase()}</Text>
+                  </View>
+                  <View style={styles.transactionInfo}>
+                    <View style={styles.nameLine}>
+                      <Text style={[styles.person, { color: colors.text }]} numberOfLines={1}>{debt.person}</Text>
+                      <Text style={[styles.category, { color: colors.textTertiary }]}>{debt.category}</Text>
+                    </View>
+                    <View style={styles.detailLine}>
+                      <Text style={[styles.direction, { color: accent }]}>{incomingDebt ? "You lent" : "You owe"}</Text>
+                      <Text style={[styles.role, { color: colors.textSecondary }]}>{incomingDebt ? "Receivable" : "Payable"}</Text>
+                      <Text style={[styles.due, { color: dueColor }]}>{due.label}</Text>
+                    </View>
+                  </View>
+                  <View style={styles.transactionRight}>
+                    <Text style={[styles.amount, { color: colors.text }]}>{formatMoney(remainingAmount(debt), debt.currency)}</Text>
+                    <View style={[styles.directionButton, { backgroundColor: soft }]}>
+                      <Ionicons name={incomingDebt ? "arrow-down" : "arrow-up"} size={13} color={accent} />
+                    </View>
+                  </View>
+                </Pressable>
+              );
+            })}
+          </View>
+        ) : (
+          <View style={[styles.empty, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <View style={[styles.emptyIcon, { backgroundColor: colors.primarySoft }]}>
+              <Ionicons name="book-outline" size={25} color={colors.primary} />
+            </View>
+            <Text style={[styles.emptyTitle, { color: colors.text }]}>No transactions yet</Text>
+            <Text style={[styles.emptyText, { color: colors.textSecondary }]}>Add your first debt and your personal ledger starts here.</Text>
+          </View>
+        )}
+
+        <Pressable onPress={() => router.push("/add-debt")} style={[styles.addButton, { backgroundColor: colors.primary }]}>
+          <Ionicons name="add" size={22} color="#fff" />
+          <Text style={styles.addText}>Add debt</Text>
+        </Pressable>
+
+        <View style={[styles.tip, { backgroundColor: colors.surfaceSecondary }]}>
+          <Ionicons name="shield-checkmark-outline" size={19} color={colors.primary} />
+          <Text style={[styles.tipText, { color: colors.textSecondary }]}>Private by design. OwedBy is your simple personal money notebook.</Text>
+        </View>
+      </ScrollView>
+      <BottomNav />
+    </View>
+  );
 }
-const styles=StyleSheet.create({container:{flex:1},content:{padding:20,paddingTop:30,paddingBottom:122},top:{flexDirection:"row",justifyContent:"space-between",alignItems:"center",marginBottom:18},identity:{flexDirection:"row",alignItems:"center",gap:11},brand:{fontFamily:Fonts.extraBold,fontSize:21},greeting:{fontFamily:Fonts.medium,fontSize:12,marginTop:2},profile:{width:42,height:42,borderRadius:21,alignItems:"center",justifyContent:"center"},profileText:{fontFamily:Fonts.bold,fontSize:15},netCard:{borderRadius:22,padding:20,minHeight:126,flexDirection:"row",justifyContent:"space-between",alignItems:"center",marginBottom:12},eyebrow:{color:"rgba(255,255,255,.72)",fontFamily:Fonts.bold,fontSize:9,letterSpacing:1},net:{color:"#fff",fontFamily:Fonts.extraBold,fontSize:28,marginTop:7},netHint:{color:"rgba(255,255,255,.78)",fontFamily:Fonts.regular,fontSize:11,marginTop:5},netIcon:{width:48,height:48,borderRadius:24,backgroundColor:"rgba(255,255,255,.16)",alignItems:"center",justifyContent:"center"},cards:{flexDirection:"row",gap:10},card:{flex:1,borderRadius:18,padding:16,minHeight:145},cardIcon:{width:34,height:34,borderRadius:17,alignItems:"center",justifyContent:"center",marginBottom:12},label:{fontFamily:Fonts.medium,fontSize:12},amount:{fontFamily:Fonts.extraBold,fontSize:23,marginTop:4},meta:{fontFamily:Fonts.regular,fontSize:10,marginTop:5},search:{height:50,borderRadius:15,borderWidth:1,marginTop:14,paddingHorizontal:13,flexDirection:"row",alignItems:"center"},input:{flex:1,marginLeft:9,fontFamily:Fonts.regular,fontSize:14},filters:{gap:8,paddingVertical:13},filter:{height:35,paddingHorizontal:14,borderRadius:18,borderWidth:1,alignItems:"center",justifyContent:"center"},filterText:{fontFamily:Fonts.medium,fontSize:11},section:{flexDirection:"row",justifyContent:"space-between",alignItems:"center",marginTop:8,marginBottom:10},sectionTitle:{fontFamily:Fonts.bold,fontSize:19},sectionSub:{fontFamily:Fonts.regular,fontSize:11,marginTop:3},count:{fontFamily:Fonts.bold,fontSize:12},ledger:{borderRadius:19,overflow:"hidden"},row:{minHeight:82,paddingHorizontal:14,flexDirection:"row",alignItems:"center"},personAvatar:{width:44,height:44,borderRadius:22,alignItems:"center",justifyContent:"center"},initial:{fontFamily:Fonts.bold,fontSize:16},info:{flex:1,marginLeft:12},person:{fontFamily:Fonts.semiBold,fontSize:14},metaRow:{flexDirection:"row",alignItems:"center",gap:7,marginTop:6},badge:{paddingHorizontal:7,paddingVertical:4,borderRadius:8},badgeText:{fontFamily:Fonts.medium,fontSize:9},direction:{fontFamily:Fonts.medium,fontSize:9},right:{flexDirection:"row",alignItems:"center",gap:3},rowAmount:{fontFamily:Fonts.bold,fontSize:13},add:{height:56,borderRadius:18,marginTop:18,flexDirection:"row",alignItems:"center",justifyContent:"center",gap:7},addText:{color:"#fff",fontFamily:Fonts.bold,fontSize:15},tip:{marginTop:12,borderRadius:18,padding:14,flexDirection:"row",gap:11,alignItems:"center"},tipIcon:{width:38,height:38,borderRadius:12,alignItems:"center",justifyContent:"center"},tipTitle:{fontFamily:Fonts.semiBold,fontSize:12},tipText:{fontFamily:Fonts.regular,fontSize:10,lineHeight:16,marginTop:3},empty:{borderRadius:18,borderWidth:1,padding:28,alignItems:"center"},emptyIcon:{width:52,height:52,borderRadius:26,alignItems:"center",justifyContent:"center",marginBottom:10},emptyTitle:{fontFamily:Fonts.semiBold,fontSize:16},emptyText:{fontFamily:Fonts.regular,fontSize:12,lineHeight:18,textAlign:"center",maxWidth:280,marginTop:4}});
+
+const styles = StyleSheet.create({
+  container: { flex: 1 },
+  content: { padding: 20, paddingTop: 28, paddingBottom: 122 },
+  header: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+  identity: { flexDirection: "row", alignItems: "center", gap: 11 },
+  greeting: { fontFamily: Fonts.bold, fontSize: 17 },
+  brand: { fontFamily: Fonts.medium, fontSize: 11, marginTop: 3 },
+  settings: { width: 42, height: 42, borderRadius: 21, borderWidth: 1, alignItems: "center", justifyContent: "center" },
+  titleRow: { marginTop: 19 },
+  title: { fontFamily: Fonts.extraBold, fontSize: 30 },
+  subtitle: { fontFamily: Fonts.regular, fontSize: 11, marginTop: 3 },
+  dateButton: { minHeight: 60, borderRadius: 17, borderWidth: 1, marginTop: 14, paddingHorizontal: 12, flexDirection: "row", alignItems: "center", gap: 11 },
+  dateIcon: { width: 38, height: 38, borderRadius: 12, alignItems: "center", justifyContent: "center" },
+  dateLabel: { fontFamily: Fonts.bold, fontSize: 8, letterSpacing: 1 },
+  dateValue: { fontFamily: Fonts.semiBold, fontSize: 13, marginTop: 2 },
+  summaryGrid: { flexDirection: "row", gap: 10, marginTop: 12 },
+  summaryCard: { flex: 1, minHeight: 157, borderRadius: 19, borderWidth: 1, padding: 14 },
+  summaryTop: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+  summaryIcon: { width: 35, height: 35, borderRadius: 12, alignItems: "center", justifyContent: "center" },
+  countPill: { maxWidth: "62%", paddingHorizontal: 7, paddingVertical: 5, borderRadius: 10, flexDirection: "row", alignItems: "center", gap: 2 },
+  countText: { fontFamily: Fonts.bold, fontSize: 8 },
+  summaryLabel: { fontFamily: Fonts.medium, fontSize: 11, marginTop: 13 },
+  summaryAmount: { fontFamily: Fonts.extraBold, fontSize: 21, marginTop: 4 },
+  summaryCaption: { fontFamily: Fonts.medium, fontSize: 9, marginTop: 4 },
+  sectionHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-end", marginTop: 24, marginBottom: 10 },
+  sectionTitle: { fontFamily: Fonts.bold, fontSize: 19 },
+  sectionSub: { fontFamily: Fonts.regular, fontSize: 10, marginTop: 3 },
+  sectionCount: { fontFamily: Fonts.bold, fontSize: 11 },
+  history: { borderRadius: 19, borderWidth: 1, overflow: "hidden" },
+  transaction: { minHeight: 84, padding: 12, flexDirection: "row", alignItems: "center" },
+  avatar: { width: 43, height: 43, borderRadius: 14, alignItems: "center", justifyContent: "center" },
+  avatarText: { fontFamily: Fonts.extraBold, fontSize: 16 },
+  transactionInfo: { flex: 1, marginLeft: 11, marginRight: 7 },
+  nameLine: { flexDirection: "row", alignItems: "center", gap: 7 },
+  person: { fontFamily: Fonts.semiBold, fontSize: 13, flexShrink: 1 },
+  category: { fontFamily: Fonts.medium, fontSize: 9, textTransform: "capitalize" },
+  detailLine: { flexDirection: "row", alignItems: "center", gap: 7, marginTop: 6, flexWrap: "wrap" },
+  direction: { fontFamily: Fonts.bold, fontSize: 9 },
+  role: { fontFamily: Fonts.medium, fontSize: 9 },
+  due: { fontFamily: Fonts.medium, fontSize: 9 },
+  transactionRight: { alignItems: "flex-end", gap: 7 },
+  amount: { fontFamily: Fonts.bold, fontSize: 13 },
+  directionButton: { width: 25, height: 25, borderRadius: 9, alignItems: "center", justifyContent: "center" },
+  addButton: { height: 56, borderRadius: 18, marginTop: 17, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 7 },
+  addText: { color: "#fff", fontFamily: Fonts.bold, fontSize: 15 },
+  tip: { marginTop: 11, borderRadius: 16, padding: 13, flexDirection: "row", alignItems: "center", gap: 9 },
+  tipText: { flex: 1, fontFamily: Fonts.regular, fontSize: 10, lineHeight: 16 },
+  empty: { borderRadius: 18, borderWidth: 1, padding: 28, alignItems: "center" },
+  emptyIcon: { width: 52, height: 52, borderRadius: 26, alignItems: "center", justifyContent: "center", marginBottom: 10 },
+  emptyTitle: { fontFamily: Fonts.semiBold, fontSize: 16 },
+  emptyText: { fontFamily: Fonts.regular, fontSize: 12, lineHeight: 18, textAlign: "center", maxWidth: 280, marginTop: 4 },
+});
