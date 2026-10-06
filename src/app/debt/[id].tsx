@@ -9,7 +9,8 @@ import { paymentProgress, remainingAmount } from "@/types/debt";
 
 const date=(v:string)=>new Date(v).toLocaleDateString(undefined,{day:"numeric",month:"short",year:"numeric"});
 
-export default function DebtDetailScreen(){\n  const goBack=()=>router.canGoBack()?router.back():router.replace("/");
+export default function DebtDetailScreen(){
+  const goBack=()=>router.canGoBack()?router.back():router.replace("/");
   const {id}=useLocalSearchParams<{id:string}>();
   const colors=Colors[useColorScheme()==="dark"?"dark":"light"];
   const {debts,getDebt,addPayment,deleteDebt}=useDebts();
